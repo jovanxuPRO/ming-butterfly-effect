@@ -164,11 +164,13 @@ body{font-family:'SimSun','STSong','Noto Serif SC','Noto Serif CJK SC',serif;bac
     <div id="char-list"></div>
   </div>
   <div id="resource-bar">
-    <span class="rlabel" title="点击资源选中后再点击地图分配">调配资源：</span>
-    <span class="drag-token" data-type="treasury" id="token-treasury" title="国库银两·当前可调配数·点击选中后点地图分配">0</span>
-    <span class="drag-token" data-type="supplies" id="token-supplies" title="粮草存量·当前可调配数·点击选中后点地图分配">0</span>
-    <span class="drag-token" data-type="military" id="token-military" title="可调兵力(总额30%)·当前可调配数·点击选中后点地图分配">0</span>
-    <span style="color:#8B7355;font-size:9px;margin:0 4px">每次分配:<button onclick="setAllocPct(10)" style="padding:1px 5px;font-size:9px;font-family:inherit;background:rgba(30,18,8,0.5);border:1px solid rgba(218,165,32,0.2);color:#c0a080;cursor:pointer;border-radius:2px">10%</button><button onclick="setAllocPct(25)" style="padding:1px 5px;font-size:9px;font-family:inherit;background:rgba(30,18,8,0.5);border:1px solid rgba(218,165,32,0.2);color:#c0a080;cursor:pointer;border-radius:2px">25%</button><button onclick="setAllocPct(50)" style="padding:1px 5px;font-size:9px;font-family:inherit;background:rgba(196,30,58,0.4);border:1px solid #DAA520;color:#DAA520;cursor:pointer;border-radius:2px">50%</button><span id="alloc-pct-label" style="color:#DAA520;font-size:9px">50%</span></span>
+    <span class="rlabel">调配：</span>
+    <span class="drag-token" data-type="treasury" id="token-treasury" title="国库银两·储备420·点击选中后点地图分配">国库 420</span>
+    <span class="drag-token" data-type="supplies" id="token-supplies" title="粮草存量·储备310·点击选中后点地图分配">粮草 310</span>
+    <span class="drag-token" data-type="military" id="token-military" title="可调兵力(总额580的30%)·点击选中后点地图分配">兵力 174</span>
+    <span style="color:#8B7355;font-size:9px;margin:0 4px">分配比例:</span>
+    <input id="alloc-pct-input" type="number" value="50" min="5" max="100" step="5" onchange="setAllocPct(parseInt(this.value)||50)" style="width:42px;padding:1px 3px;font-size:10px;font-family:inherit;background:rgba(30,18,8,0.7);border:1px solid rgba(218,165,32,0.3);color:#DAA520;border-radius:2px;text-align:center">
+    <span style="color:#DAA520;font-size:9px">%</span>
     <button onclick="advancePhase()" id="btn-advance" style="padding:3px 14px;font-family:inherit;font-size:11px;background:rgba(139,0,0,0.5);border:1px solid #DAA520;color:#DAA520;cursor:pointer;border-radius:3px;margin-left:8px">进入施政 →</button>
   </div>
   <div id="policy-bar">
@@ -761,8 +763,8 @@ function advancePhase(){
 }
 
 // ============ RESOURCE ALLOCATION ============
-var ALLOC_PCT = 50; // 默认调配比例
-function setAllocPct(pct){ ALLOC_PCT=pct; document.getElementById('alloc-pct-label').textContent=pct+'%'; }
+var ALLOC_PCT = 50;
+function setAllocPct(pct){ ALLOC_PCT=Math.max(5,Math.min(100,pct||50)); var inp=$('alloc-pct-input'); if(inp)inp.value=ALLOC_PCT; }
 
 function allocResource(type, amount, regionId){
   var s=G.state, r=s.regions[regionId]; if(!r)return;
@@ -1100,18 +1102,18 @@ function onCharClick(cid){ G.activeCharId=G.activeCharId===cid?null:cid; renderC
 function renderResources(){
   var s=G.state;
   if(s.phase==='admin'){
-    document.getElementById('token-treasury').textContent=s.resources.treasury;
-    document.getElementById('token-supplies').textContent=s.resources.supplies;
-    document.getElementById('token-military').textContent=Math.floor(s.resources.military*0.3);
+    var r=s.resources;
+    $('token-treasury').textContent='国库 '+r.treasury;
+    $('token-supplies').textContent='粮草 '+r.supplies;
+    $('token-military').textContent='兵力 '+Math.floor(r.military*0.3);
     var tokens=document.querySelectorAll('.drag-token');
     for(var i=0;i<tokens.length;i++)tokens[i].classList.remove('spent');
-    // Reset drag selection when entering admin
     G.dragType=null;
     for(var i=0;i<tokens.length;i++){ tokens[i].style.background='rgba(139,0,0,0.4)'; tokens[i].style.borderColor='#DAA520'; tokens[i].style.boxShadow='' }
   } else {
-    document.getElementById('token-treasury').textContent='0';
-    document.getElementById('token-supplies').textContent='0';
-    document.getElementById('token-military').textContent='0';
+    $('token-treasury').textContent='国库';
+    $('token-supplies').textContent='粮草';
+    $('token-military').textContent='兵力';
     var tokens=document.querySelectorAll('.drag-token');
     for(var i=0;i<tokens.length;i++)tokens[i].classList.add('spent');
   }
