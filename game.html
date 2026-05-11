@@ -6,7 +6,7 @@
 <title>大明：蝴蝶效应</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'SimSun','STSong','Microsoft YaHei',serif;background:#0a0604;color:#f0e6d2;overflow:hidden;height:100vh}
+body{font-family:'SimSun','STSong','Noto Serif SC','Noto Serif CJK SC',serif;background:#0a0604;color:#f0e6d2;overflow:hidden;height:100vh}
 #title-screen{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#1a0a04 0%,#0a0402 70%)}
 #title-screen.hidden{display:none}
 #title-screen h1{font-size:52px;color:#C41E3A;text-shadow:0 0 30px rgba(196,30,58,0.5);letter-spacing:8px;margin-bottom:6px}
@@ -188,6 +188,17 @@ try{(function(){var c=document.createElement('canvas');c.style.cssText='position
 
 // ============ GAME STATE ============
 var G = window.G = { state: null, turnCount: 0, decisionLog: [], activeEventId: null, activeCharId: null, dragType: null, confirmCb: null };
+
+// 安全 DOM 访问
+function $(id){ return document.getElementById(id) }
+function safeText(id, text){ var el=$(id); if(el)el.textContent=text }
+function safeHTML(id, html){ var el=$(id); if(el)el.innerHTML=html }
+function safeClass(id, cls, op){ var el=$(id); if(el)el.classList[op](cls) }
+function safeStyle(id, prop, val){ var el=$(id); if(el)el.style[prop]=val }
+
+// 安全状态访问
+function stateOk(){ return !!(G.state && !G.state.ending) }
+function res(k){ return G.state?G.state.resources[k]:0 }
 
 G.MONTHS = ['正','二','三','四','五','六'];
 G.DAYS = ['','初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
@@ -688,28 +699,37 @@ function checkEndings(){
 
 // ============ START / LOAD ============
 function startNewGame(){
-  G.state = createState();
-  G.turnCount = 1; G.decisionLog = []; G.activeEventId = null; G.activeCharId = null; G.dragType = null;
-  document.getElementById('title-screen').classList.add('hidden');
-  document.getElementById('game-screen').classList.add('visible');
-  document.getElementById('ending-screen').classList.remove('visible');
-  renderAll();
-  setTimeout(function(){ showTutorial() }, 500);
+  try{
+    G.state = createState();
+    G.turnCount = 1; G.decisionLog = []; G.activeEventId = null; G.activeCharId = null; G.dragType = null;
+    safeClass('title-screen','add','hidden');
+    safeClass('game-screen','add','visible');
+    safeClass('ending-screen','remove','visible');
+    renderAll();
+    setTimeout(function(){ try{showTutorial()}catch(e){} }, 500);
+  }catch(e){ showToast('启动失败：'+e.message); console.error(e) }
 }
 
 function loadGame(){
   try{
     var raw = localStorage.getItem('ming_butterfly_save');
-    if(!raw){ alert('没有找到存档'); return }
+    if(!raw){ showToast('没有找到存档'); return }
     var data = JSON.parse(raw);
+    if(!data||!data.state){ showToast('存档数据无效'); return }
     G.state = data.state; G.turnCount = data.turnCount||1; G.decisionLog = data.decisionLog||[];
-    G.state.triggered = G.state.triggered || {}; G.state.policiesUsed = G.state.policiesUsed || {};
+    if(!G.state.triggered)G.state.triggered={};
+    if(!G.state.policiesUsed)G.state.policiesUsed={};
+    if(!G.state.vars)G.state.vars={};
+    if(!G.state.characters)G.initChars(G.state);
+    if(!G.state.regions)G.initRegions(G.state);
+    if(!G.state.resources)G.state.resources={treasury:420,supplies:310,military:580,support:45,prestige:55};
     G.activeEventId = null; G.activeCharId = null;
-    document.getElementById('title-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.add('visible');
-    document.getElementById('ending-screen').classList.remove('visible');
+    safeClass('title-screen','add','hidden');
+    safeClass('game-screen','add','visible');
+    safeClass('ending-screen','remove','visible');
     renderAll();
-  }catch(e){ alert('存档损坏，无法读取') }
+    showToast('存档已读取');
+  }catch(e){ showToast('读取失败：存档损坏'); console.error(e) }
 }
 
 function returnToTitle(){
@@ -722,10 +742,12 @@ function returnToTitle(){
 }
 
 function saveGame(){
-  if(!G.state)return;
-  var data = {state:G.state, turnCount:G.turnCount, decisionLog:G.decisionLog, saved:true};
-  localStorage.setItem('ming_butterfly_save', JSON.stringify(data));
-  showToast('存档已保存');
+  if(!G.state){ showToast('无游戏状态可保存'); return }
+  try{
+    var data = {state:G.state, turnCount:G.turnCount, decisionLog:G.decisionLog, saved:true};
+    localStorage.setItem('ming_butterfly_save', JSON.stringify(data));
+    showToast('存档已保存');
+  }catch(e){ showToast('保存失败：'+e.message); console.error(e) }
 }
 
 // ============ PHASE ============
@@ -835,7 +857,12 @@ function showEnding(eid){
 // ============ RENDERING ============
 function renderAll(){
   if(!G.state)return;
-  renderHeader(); renderStats(); renderMap(); renderEvents(); renderChars(); renderResources(); renderPolicies();
+  try{
+    renderHeader(); renderStats(); renderMap(); renderEvents(); renderChars(); renderResources(); renderPolicies();
+  }catch(e){
+    console.error('renderAll error:',e);
+    showToast('界面渲染异常：'+e.message);
+  }
 }
 
 function renderHeader(){
@@ -849,23 +876,25 @@ function renderHeader(){
 }
 
 function renderStats(){
-  var s=G.state, r=s.resources;
+  var s=G.state; if(!s||!s.resources)return;
+  var r=s.resources;
   var keys=['treasury','supplies','military','support','prestige'];
   var maxes=[1000,1000,1000,100,100];
   for(var i=0;i<keys.length;i++){
-    var k=keys[i], el=document.getElementById('val-'+k), prev=G._prevStats?G._prevStats[k]:null;
+    var k=keys[i], el=$('val-'+k); if(!el)continue;
+    var prev=G._prevStats?G._prevStats[k]:null;
     el.textContent=r[k];
-    document.getElementById('bar-'+k).style.width=(r[k]/maxes[i]*100)+'%';
+    var bar=$('bar-'+k); if(bar)bar.style.width=(r[k]/maxes[i]*100)+'%';
     if(prev!==null&&r[k]!==prev){
       el.classList.remove('changed-up','changed-down');
       el.classList.add(r[k]>prev?'changed-up':'changed-down');
-      setTimeout(function(el){el.classList.remove('changed-up','changed-down')},900,el);
+      setTimeout(function(el){try{el.classList.remove('changed-up','changed-down')}catch(e){}},900,el);
     }
   }
 }
 
 function renderMap(){
-  var svg=document.getElementById('map-svg'), s=G.state; if(!s)return;
+  var svg=$('map-svg'), s=G.state; if(!svg||!s||!s.regions)return;
   var h='<defs>';
   h+='<radialGradient id="parch"><stop offset="0%" stop-color="#2a1a0a"/><stop offset="100%" stop-color="#0d0804"/></radialGradient>';
   h+='<filter id="g1"><feGaussianBlur stdDeviation="3"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
@@ -1126,14 +1155,10 @@ function showTutorial(){
 
 // ============ INIT ============
 document.addEventListener('DOMContentLoaded', function(){
-  document.getElementById('confirm-yes').addEventListener('click', function(){
-    document.getElementById('confirm-dialog').classList.remove('visible');
-    if(G.confirmCb){ var cb=G.confirmCb; G.confirmCb=null; cb() }
-  });
-  document.getElementById('confirm-no').addEventListener('click', function(){
-    document.getElementById('confirm-dialog').classList.remove('visible');
-    G.confirmCb=null;
-  });
+  try{
+  var ce=$('confirm-yes'); if(ce)ce.addEventListener('click', function(){ var d=$('confirm-dialog'); if(d)d.classList.remove('visible'); if(G.confirmCb){ var cb=G.confirmCb; G.confirmCb=null; try{cb()}catch(e){} } });
+  var cn=$('confirm-no'); if(cn)cn.addEventListener('click', function(){ var d=$('confirm-dialog'); if(d)d.classList.remove('visible'); G.confirmCb=null });
+
 
   // Click-to-select resource tokens (simpler than drag)
   var tokens=document.querySelectorAll('.drag-token');
@@ -1211,9 +1236,10 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 
   // Status
-  document.getElementById('status-msg').textContent = '引擎已就绪';
+  safeText('status-msg','引擎已就绪');
 
   console.log('大明：蝴蝶效应 - 引擎就绪');
+  }catch(e){ console.error('Init error:',e); safeText('status-msg','初始化失败') }
 });
 
 </script>
