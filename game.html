@@ -657,7 +657,7 @@ function getAvailableEvents(){
   var s=G.state, avail=[];
   for(var i=0;i<ALL_EVENTS.length;i++){
     var ev=ALL_EVENTS[i];
-    if(ev.once&&s.triggered[ev.id])continue;
+    if(s.triggered[ev.id])continue;
     if(!ev.cond||ev.cond(s))avail.push(ev);
   }
   return avail;
@@ -665,12 +665,11 @@ function getAvailableEvents(){
 
 function executeChoice(ev, ch){
   var s=G.state;
-  // 保存变动前数值
   G._prevStats = {treasury:s.resources.treasury,supplies:s.resources.supplies,military:s.resources.military,support:s.resources.support,prestige:s.resources.prestige};
   var all=[];
   for(var i=0;i<ch.effs.length;i++){ var e=ch.effs[i]; applyEffect(e,s); all.push(e) }
   var bf=propagate(all,s);
-  if(ev.once)s.triggered[ev.id]=true;
+  s.triggered[ev.id]=true;
   G.decisionLog.push({turn:G.turnCount, date:dateStr(), event:ev.title, choice:ch.label});
   G.activeEventId=null;
   renderAll();
