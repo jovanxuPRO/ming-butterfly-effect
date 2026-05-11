@@ -1138,8 +1138,7 @@ function renderResources(){
     if(atype==='military'){
       for(var rid in s.regions){ var reg=s.regions[rid]; if(reg.control==='明'||reg.military<5)continue; tsel.innerHTML+='<option value="'+rid+'">'+reg.name+' ['+reg.control+'] ⚔'+reg.military+'</option>' }
     }else if(atype==='diplomacy'){
-      for(var cid in s.characters){ var ch=s.characters[cid]; if(cid==='li_zicheng'||cid==='duoergun')tsel.innerHTML+='<option value="'+cid+'">'+ch.name+' ('+ch.title+')</option>' }
-      tsel.innerHTML+='<option value="zuo_liangyu">左良玉 (宁南伯)</option>';
+      for(var cid in s.characters){ var ch=s.characters[cid]; if(cid==='li_zicheng'||cid==='duoergun'||cid==='zuo_liangyu')tsel.innerHTML+='<option value="'+cid+'">'+ch.name+' ('+ch.title+')</option>' }
     }else if(atype==='espionage'){
       for(var cid2 in s.characters){ var ch2=s.characters[cid2]; if(ch2.loyalty<70&&ch2.loyalty>0)tsel.innerHTML+='<option value="'+cid2+'">调查 '+ch2.name+' (忠'+ch2.loyalty+')</option>' }
       tsel.innerHTML+='<option value="enemy">刺探敌营情报</option>';
