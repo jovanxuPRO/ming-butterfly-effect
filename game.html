@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大明：蝴蝶效应</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'SimSun','STSong','Microsoft YaHei',serif;background:#0a0604;color:#f0e6d2;overflow:hidden;height:100vh}
+#title-screen{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#1a0a04 0%,#0a0402 70%)}
+#title-screen.hidden{display:none}
+#title-screen h1{font-size:52px;color:#C41E3A;text-shadow:0 0 30px rgba(196,30,58,0.5);letter-spacing:8px;margin-bottom:6px}
+#title-screen h2{font-size:22px;color:#DAA520;letter-spacing:6px;margin-bottom:12px}
+#title-screen .year{font-size:14px;color:#8B7355;letter-spacing:3px;margin-bottom:30px}
+#title-screen .status{font-size:13px;color:#f44336;margin-bottom:10px;min-height:18px}
+#title-screen button{display:block;width:220px;padding:14px 0;margin:6px auto;font-size:18px;font-family:inherit;background:rgba(139,0,0,0.5);border:2px solid #DAA520;color:#DAA520;cursor:pointer;letter-spacing:4px;border-radius:4px;transition:all 0.3s}
+#title-screen button:hover{background:rgba(196,30,58,0.7);box-shadow:0 0 20px rgba(218,165,32,0.4)}
+#title-screen button:disabled{opacity:0.35;cursor:not-allowed}
+#game-screen{position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;display:none;grid-template-rows:auto auto minmax(0,1fr) auto auto;grid-template-columns:minmax(180px,16vw) 1fr minmax(150px,13vw);gap:2px;padding:2px;background:#0a0604}
+#game-screen.visible{display:grid}
+@media(max-width:1000px){#game-screen{grid-template-columns:160px 1fr 120px}}
+@media(max-width:750px){#game-screen{grid-template-columns:1fr;grid-template-rows:auto auto minmax(0,35vh) auto auto auto auto}}
+#header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:0 14px;background:rgba(20,12,6,0.95);border:1px solid rgba(218,165,32,0.3);border-radius:4px}
+#header .info{display:flex;align-items:center;gap:12px}
+#header .game-title{font-size:17px;font-weight:700;color:#DAA520}
+#header .date-text{font-size:14px;color:#c0a080}
+#header .phase-tag{padding:3px 10px;border-radius:3px;font-size:12px;letter-spacing:2px}
+.phase-tag.morning{background:rgba(139,0,0,0.5);color:#f0e6d2}
+.phase-tag.admin{background:rgba(42,64,112,0.5);color:#f0e6d2}
+.phase-tag.resolve{background:rgba(139,105,20,0.4);color:#f0e6d2}
+#header .btns{display:flex;gap:6px}
+#header .btns button{padding:4px 10px;font-size:11px;font-family:inherit;background:transparent;border:1px solid rgba(218,165,32,0.3);color:#c0a080;cursor:pointer;border-radius:3px;letter-spacing:1px}
+#header .btns button:hover{color:#DAA520;border-color:#DAA520}
+#stats-bar{grid-column:1/-1;display:flex;gap:8px;align-items:center;padding:0 12px;background:rgba(20,12,6,0.95);border:1px solid rgba(218,165,32,0.3);border-radius:3px}
+.stat{display:flex;align-items:center;gap:4px;font-size:11px}
+.stat .icon{font-size:13px}
+.stat .name{color:#8B7355;min-width:24px}
+.stat .bar{width:70px;height:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:1px;overflow:hidden}
+.stat .bar .fill{height:100%;transition:width 0.5s}
+.fill.treasury{background:linear-gradient(90deg,#8B6914,#DAA520)}.fill.supplies{background:linear-gradient(90deg,#3a6b3a,#5a9a5a)}
+.fill.military{background:linear-gradient(90deg,#6B2020,#C41E3A)}.fill.support{background:linear-gradient(90deg,#6B5060,#C080A0)}
+.fill.prestige{background:linear-gradient(90deg,#2A4070,#4A6FB5)}
+.stat .val{color:#f0e6d2;font-weight:700;width:30px;text-align:right;font-size:12px}
+.stat .val.changed-up{color:#4CAF50;animation:pulseGreen 0.8s}
+.stat .val.changed-down{color:#f44336;animation:pulseRed 0.8s}
+@keyframes pulseGreen{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+@keyframes pulseRed{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+#event-panel{background:rgba(20,12,6,0.95);border:1px solid rgba(218,165,32,0.3);border-radius:4px;padding:8px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+#event-panel .title{font-size:13px;color:#DAA520;text-align:center;letter-spacing:2px;padding-bottom:5px;border-bottom:1px solid rgba(218,165,32,0.2)}
+.event-card{background:rgba(30,18,8,0.7);border:1px solid rgba(218,165,32,0.12);border-radius:3px;padding:8px 10px;cursor:pointer;transition:all 0.25s}
+.event-card:hover{border-color:rgba(218,165,32,0.4)}
+.event-card.selected{border-color:#DAA520;background:rgba(60,20,10,0.5)}
+.event-card .evt-title{font-size:12px;font-weight:700;color:#DAA520;margin-bottom:3px}
+.event-card .evt-text{font-size:10px;color:#c0a080;line-height:1.5;max-height:0;overflow:hidden;transition:max-height 0.3s}
+.event-card.selected .evt-text{max-height:400px;margin-bottom:5px}
+.event-card .evt-choices{max-height:0;overflow:hidden;transition:max-height 0.3s}
+.event-card.selected .evt-choices{max-height:300px}
+.evt-choices button{display:block;width:100%;padding:5px 8px;margin:2px 0;font-size:10px;font-family:inherit;text-align:left;background:rgba(20,12,6,0.5);border:1px solid rgba(218,165,32,0.2);color:#c0a080;cursor:pointer;border-radius:2px;transition:all 0.2s}
+.evt-choices button:hover{border-color:#DAA520;color:#f0e6d2;background:rgba(139,0,0,0.3)}
+.event-log{margin-top:auto;padding-top:4px;border-top:1px solid rgba(218,165,32,0.12);font-size:9px;color:#6B5B4B;line-height:1.6;max-height:100px;overflow-y:auto}
+#map-panel{background:rgba(20,12,6,0.95);border:1px solid rgba(218,165,32,0.3);border-radius:4px;position:relative;box-shadow:inset 0 0 30px rgba(0,0,0,0.3)}
+#map-panel svg{width:100%;height:100%}
+.map-region{cursor:pointer;transition:opacity 0.3s}.map-region:hover{opacity:0.8}
+.map-tip{position:fixed;background:rgba(10,4,2,0.95);border:1px solid #DAA520;border-radius:3px;padding:5px 8px;font-size:10px;pointer-events:none;display:none;z-index:400;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,0.6)}
+.map-tip .name{color:#DAA520;font-weight:700;font-size:11px}
+.map-tip .stat{color:#c0a080;font-size:10px}
+#char-panel{background:rgba(20,12,6,0.95);border:1px solid rgba(218,165,32,0.3);border-radius:4px;padding:8px;overflow-y:auto}
+#char-panel .title{font-size:12px;color:#DAA520;text-align:center;letter-spacing:2px;padding-bottom:4px;border-bottom:1px solid rgba(218,165,32,0.2);margin-bottom:5px}
+.char-card{padding:4px 6px;margin-bottom:2px;background:rgba(30,18,8,0.4);border:1px solid rgba(218,165,32,0.08);border-radius:2px;cursor:pointer;transition:all 0.2s;overflow:hidden}
+.char-card:hover{border-color:rgba(218,165,32,0.35);background:rgba(50,28,12,0.5)}
+.char-card.selected{border-color:#DAA520;background:rgba(60,20,10,0.4)}
+.char-card .cname{color:#DAA520;font-weight:700;font-size:11px}
+.char-card .ctitle{color:#8B7355;font-size:8px}
+.char-card .cdetail{max-height:0;overflow:hidden;transition:max-height 0.3s;font-size:9px;color:#c0a080;line-height:1.4}
+.char-card.selected .cdetail{max-height:80px}
+#resource-bar{grid-column:1/-1;display:flex;gap:6px;align-items:center;padding:4px 8px;background:rgba(20,12,6,0.95);border:1px solid rgba(218,165,32,0.3);border-radius:3px;font-size:10px;flex-wrap:wrap;min-height:28px;overflow-x:auto}
+#resource-bar .rlabel{color:#8B7355}
+#resource-bar .drag-token{padding:3px 10px;background:rgba(139,0,0,0.4);border:1px solid #DAA520;border-radius:3px;color:#DAA520;cursor:grab;font-weight:700;font-family:monospace;transition:all 0.2s;letter-spacing:1px}
+#resource-bar .drag-token:hover{background:rgba(196,30,58,0.6)}
+#resource-bar .drag-token:active{cursor:grabbing}
+#resource-bar .drag-token.spent{opacity:0.3;cursor:not-allowed}
+#policy-bar{grid-column:1/-1;display:flex;gap:2px;align-items:center;padding:3px 6px;background:rgba(20,12,6,0.95);border:1px solid rgba(218,165,32,0.3);border-radius:3px;font-size:10px;flex-wrap:wrap;min-height:28px;overflow-y:auto;max-height:55px}
+#policy-bar .plabel{color:#8B7355;white-space:nowrap}
+#policy-bar .pchip{padding:3px 7px;font-size:9px;font-family:inherit;background:rgba(30,18,8,0.5);border:1px solid rgba(218,165,32,0.15);color:#c0a080;cursor:pointer;border-radius:2px;white-space:nowrap;letter-spacing:1px;transition:all 0.2s}
+#policy-bar .pchip:hover{border-color:#DAA520;color:#DAA520}
+#policy-bar .pchip.used{opacity:0.3;cursor:not-allowed;text-decoration:line-through}
+#policy-bar .pchip.no{opacity:0.3;cursor:not-allowed}
+#butterfly-modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.7)}
+#butterfly-modal.visible{display:flex}
+.bf-box{max-width:650px;width:90%;max-height:80vh;overflow-y:auto;background:rgba(10,4,2,0.97);border:2px solid #DAA520;border-radius:6px;padding:20px;animation:fadeIn 0.3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+.bf-box h3{text-align:center;color:#DAA520;font-size:18px;letter-spacing:3px;margin-bottom:10px}
+.bf-wave{padding:8px 10px;margin-bottom:8px;border-left:2px solid #DAA520;background:rgba(30,18,8,0.3);border-radius:0 3px 3px 0}
+.bf-wave .lev{font-size:10px;color:#DAA520;letter-spacing:1px}
+.bf-wave .desc{font-size:11px;color:#c0a080;line-height:1.6;margin:3px 0}
+.bf-wave .eff{font-size:9px;color:#8B7355;font-family:monospace}
+.bf-box .diss{text-align:center;color:#8B7355;font-size:11px;padding:6px;border-top:1px solid rgba(218,165,32,0.15);margin-top:6px}
+.bf-box button{display:block;margin:10px auto 0;padding:7px 30px;font-family:inherit;font-size:13px;background:rgba(139,0,0,0.5);border:1px solid #DAA520;color:#f0e6d2;cursor:pointer;border-radius:3px;letter-spacing:2px;transition:all 0.3s}
+.bf-box button:hover{background:rgba(196,30,58,0.7)}
+#confirm-dialog{position:fixed;inset:0;z-index:250;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)}
+#confirm-dialog.visible{display:flex}
+.confirm-box{background:rgba(10,4,2,0.97);border:2px solid #DAA520;border-radius:5px;padding:18px 24px;max-width:380px;width:80%;text-align:center}
+.confirm-box p{font-size:13px;color:#f0e6d2;margin-bottom:14px;line-height:1.7}
+.confirm-box button{padding:6px 20px;margin:0 5px;font-family:inherit;font-size:12px;border-radius:3px;cursor:pointer;letter-spacing:2px}
+.confirm-box .yes{background:rgba(196,30,58,0.6);border:1px solid #DAA520;color:#f0e6d2}
+.confirm-box .no{background:transparent;border:1px solid rgba(218,165,32,0.3);color:#8B7355}
+#ending-screen{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#1a0804 0%,#0a0201 80%)}
+#ending-screen.visible{display:flex}
+.end-box{max-width:680px;width:90%;max-height:85vh;overflow-y:auto;padding:25px;text-align:center}
+.end-box h2{font-size:30px;color:#DAA520;letter-spacing:6px;margin-bottom:8px}
+.end-box .sub{font-size:13px;color:#8B7355;letter-spacing:2px;margin-bottom:16px}
+.end-box .nar{font-size:13px;color:#c0a080;line-height:2;text-align:left;text-indent:2em;margin-bottom:10px}
+.end-box .final-stats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:12px 0;padding:10px;background:rgba(20,12,6,0.5);border:1px solid rgba(218,165,32,0.2);border-radius:3px}
+.end-box .final-stats span{font-size:12px;color:#DAA520;font-family:monospace}
+.end-box .history{text-align:left;font-size:10px;color:#8B7355;line-height:1.7;max-height:150px;overflow-y:auto;padding:6px;border:1px dashed rgba(218,165,32,0.2);border-radius:2px;margin:8px 0}
+.end-box button{margin-top:12px;padding:10px 36px;font-family:inherit;font-size:15px;background:rgba(139,0,0,0.6);border:1px solid #DAA520;color:#f0e6d2;cursor:pointer;border-radius:3px;letter-spacing:3px}
+.float-num{position:fixed;font-size:15px;font-weight:700;font-family:monospace;pointer-events:none;z-index:400;animation:floatUp 1s ease-out forwards}
+.float-num.pos{color:#4CAF50}.float-num.neg{color:#f44336}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-35px)}}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:rgba(0,0,0,0.2)}::-webkit-scrollbar-thumb{background:rgba(218,165,32,0.25);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="title-screen">
+  <h1>大明：蝴蝶效应</h1>
+  <h2>崇祯十七年 · 王朝最后的抉择</h2>
+  <div class="year">—— 甲申年·国祚存亡 ——</div>
+  <div class="status" id="status-msg"></div>
+  <button onclick="startNewGame()">⚔ 新 开 始</button>
+  <button id="btn-load" onclick="loadGame()">📜 继 续 旧 档</button>
+</div>
+
+<div id="game-screen">
+  <div id="header">
+    <div class="info">
+      <span class="game-title">大明·蝴蝶效应</span>
+      <span class="date-text" id="hdr-date"></span>
+    </div>
+    <div class="phase-tag morning" id="hdr-phase">早朝</div>
+    <div class="btns">
+      <button onclick="saveGame()">💾 存档</button>
+      <button onclick="confirmAction('确定返回标题画面？进度将丢失。',function(){returnToTitle()})">返回</button>
+    </div>
+  </div>
+  <div id="stats-bar">
+    <div class="stat"><span class="icon">💰</span><span class="name">国库</span><div class="bar"><div class="fill treasury" id="bar-treasury"></div></div><span class="val" id="val-treasury">420</span></div>
+    <div class="stat"><span class="icon">🌾</span><span class="name">粮草</span><div class="bar"><div class="fill supplies" id="bar-supplies"></div></div><span class="val" id="val-supplies">310</span></div>
+    <div class="stat"><span class="icon">⚔</span><span class="name">兵力</span><div class="bar"><div class="fill military" id="bar-military"></div></div><span class="val" id="val-military">580</span></div>
+    <div class="stat"><span class="icon">♥</span><span class="name">民心</span><div class="bar"><div class="fill support" id="bar-support"></div></div><span class="val" id="val-support">45</span></div>
+    <div class="stat"><span class="icon">👑</span><span class="name">威望</span><div class="bar"><div class="fill prestige" id="bar-prestige"></div></div><span class="val" id="val-prestige">55</span></div>
+  </div>
+  <div id="event-panel">
+    <div class="title">📜 奏 章</div>
+    <div id="event-list"></div>
+    <div class="event-log" id="event-log"></div>
+  </div>
+  <div id="map-panel">
+    <svg id="map-svg" viewBox="0 0 900 550" preserveAspectRatio="xMidYMid meet" style="cursor:grab"></svg>
+    <div class="map-tip" id="map-tip"></div>
+  </div>
+  <div id="char-panel">
+    <div class="title">👥 人 物</div>
+    <div id="char-list"></div>
+  </div>
+  <div id="resource-bar">
+    <span class="rlabel" title="点击资源选中后再点击地图分配">调配资源：</span>
+    <span class="drag-token" data-type="treasury" id="token-treasury" title="国库银两·当前可调配数·点击选中后点地图分配">0</span>
+    <span class="drag-token" data-type="supplies" id="token-supplies" title="粮草存量·当前可调配数·点击选中后点地图分配">0</span>
+    <span class="drag-token" data-type="military" id="token-military" title="可调兵力(总额30%)·当前可调配数·点击选中后点地图分配">0</span>
+    <span style="color:#8B7355;font-size:9px;margin:0 4px">每次分配:<button onclick="setAllocPct(10)" style="padding:1px 5px;font-size:9px;font-family:inherit;background:rgba(30,18,8,0.5);border:1px solid rgba(218,165,32,0.2);color:#c0a080;cursor:pointer;border-radius:2px">10%</button><button onclick="setAllocPct(25)" style="padding:1px 5px;font-size:9px;font-family:inherit;background:rgba(30,18,8,0.5);border:1px solid rgba(218,165,32,0.2);color:#c0a080;cursor:pointer;border-radius:2px">25%</button><button onclick="setAllocPct(50)" style="padding:1px 5px;font-size:9px;font-family:inherit;background:rgba(196,30,58,0.4);border:1px solid #DAA520;color:#DAA520;cursor:pointer;border-radius:2px">50%</button><span id="alloc-pct-label" style="color:#DAA520;font-size:9px">50%</span></span>
+    <button onclick="advancePhase()" id="btn-advance" style="padding:3px 14px;font-family:inherit;font-size:11px;background:rgba(139,0,0,0.5);border:1px solid #DAA520;color:#DAA520;cursor:pointer;border-radius:3px;margin-left:8px">进入施政 →</button>
+  </div>
+  <div id="policy-bar">
+    <span class="plabel">国策：</span>
+    <div id="policy-list" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+  </div>
+</div>
+
+<div id="butterfly-modal"><div class="bf-box" id="bf-box"></div></div>
+<div id="confirm-dialog"><div class="confirm-box"><p id="confirm-text"></p><button class="yes" id="confirm-yes">确认</button><button class="no" id="confirm-no">取消</button></div></div>
+<div id="ending-screen"><div class="end-box" id="end-box"></div></div>
+
+<script>
+'use strict';
+// Particle background
+try{(function(){var c=document.createElement('canvas');c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.12';document.body.insertBefore(c,document.body.firstChild);var x=c.getContext('2d');var ps=[];function rs(){c.width=innerWidth;c.height=innerHeight}window.addEventListener('resize',rs);rs();for(var i=0;i<40;i++)ps.push({x:Math.random()*c.width,y:Math.random()*c.height,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3-.15,l:Math.random()*200+100,ml:300,s:Math.random()*1.5+.5});function anim(){x.clearRect(0,0,c.width,c.height);for(var i=0;i<ps.length;i++){var p=ps[i];p.x+=p.vx;p.y+=p.vy;p.l--;if(p.l<=0){p.x=Math.random()*c.width;p.y=Math.random()*c.height;p.l=p.ml}var a=p.l/p.ml*0.25;x.fillStyle='rgba(218,165,32,'+a+')';x.beginPath();x.arc(p.x,p.y,p.s,0,Math.PI*2);x.fill()}requestAnimationFrame(anim)}anim()})()}catch(e){}
+
+// ============ GAME STATE ============
+var G = window.G = { state: null, turnCount: 0, decisionLog: [], activeEventId: null, activeCharId: null, dragType: null, confirmCb: null };
+
+G.MONTHS = ['正','二','三','四','五','六'];
+G.DAYS = ['','初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+
+// ============ REGIONS ============
+G.initRegions = function(s){
+  s.regions = {
+    beijing:      {name:'京师',     x:620,y:90, military:80, supplies:50, control:'明'},
+    shanhaiguan:  {name:'山海关',   x:740,y:70, military:60, supplies:35, control:'明'},
+    liaodong:     {name:'辽东',     x:800,y:45, military:25, supplies:15, control:'明'},
+    datong:       {name:'大同',     x:440,y:110,military:35, supplies:20, control:'明'},
+    xuanfu:       {name:'宣府',     x:550,y:80, military:40, supplies:25, control:'明'},
+    kaifeng:      {name:'开封',     x:510,y:260,military:30, supplies:20, control:'明'},
+    xian:         {name:'西安',     x:310,y:230,military:10, supplies:5,  control:'顺'},
+    wuchang:      {name:'武昌',     x:460,y:370,military:50, supplies:40, control:'明'},
+    nanjing:      {name:'南京',     x:660,y:380,military:60, supplies:55, control:'明'},
+    yangzhou:     {name:'扬州',     x:730,y:340,military:25, supplies:35, control:'明'}
+  };
+};
+G.RCONS = [['beijing','shanhaiguan'],['beijing','xuanfu'],['beijing','kaifeng'],['shanhaiguan','liaodong'],['xuanfu','datong'],['kaifeng','xian'],['kaifeng','wuchang'],['kaifeng','nanjing'],['wuchang','nanjing'],['nanjing','yangzhou']];
+
+// ============ CHARACTERS ============
+G.initChars = function(s){
+  s.characters = {
+    wu_sangui:      {name:'吴三桂',     title:'平西伯·山海关总兵',       loyalty:55, traits:'功利·善战·摇摆',   loc:'山海关', hidden:'手握天下第一关的钥匙，却只在乎自己的筹码'},
+    wang_chengen:   {name:'王承恩',     title:'司礼监提督太监',           loyalty:100,traits:'忠贞·洞察·献身',   loc:'随侍',   hidden:'十七年朝夕相伴，他已将陛下的命看得比自己的重'},
+    empress_zhou:   {name:'周皇后',     title:'皇后',                     loyalty:95, traits:'坚毅·母性·识大体', loc:'后宫',   hidden:'早已备好白绫，却仍在日日劝陛下南迁'},
+    yuan_shadow:    {name:'袁崇焕·忠魂', title:'前蓟辽督师',               loyalty:100,traits:'警示·悲怆·无悔',   loc:'幻觉',   hidden:'被磔杀的忠臣，提醒着猜忌的代价'},
+    li_zicheng:     {name:'李自成',     title:'大顺永昌帝',               loyalty:0,  traits:'豪迈·功利·自卑',   loc:'西安',   hidden:'他真正想要的不是皇位，是被承认'},
+    duoergun:       {name:'多尔衮',     title:'清摄政王',                 loyalty:0,  traits:'雄略·隐忍·洞悉',   loc:'盛京',   hidden:'他在等一个信号——吴三桂的信号'},
+    zuo_liangyu:    {name:'左良玉',     title:'宁南伯',                   loyalty:30, traits:'跋扈·观望·保存实力',loc:'武昌',   hidden:'百万大军在手却迟迟不动，他在等什么'},
+    chen_yan:       {name:'陈演',       title:'内阁首辅',                 loyalty:40, traits:'圆滑·敷衍·自保',   loc:'京师',   hidden:'奏对永远滴水不漏，也永远毫无用处'},
+    fan_jingwen:    {name:'范景文',     title:'工部尚书',                 loyalty:75, traits:'清廉·刚直·书生意气',loc:'京师',   hidden:'唯一敢在廷议上直斥陛下的臣子'},
+    cao_huachun:    {name:'曹化淳',     title:'东厂提督',                 loyalty:50, traits:'阴鸷·情报网·双面', loc:'京师',   hidden:'他知道所有人的秘密，包括你的'},
+    princess_cp:    {name:'长平公主',   title:'朱媺娖',                   loyalty:90, traits:'敏感·早熟·习剑',   loc:'后宫',   hidden:'袖中藏着一把匕首——不是为殉国，是为活下去'},
+    shi_kefa:       {name:'史可法',     title:'南京兵部尚书',             loyalty:80, traits:'忠义·务实·疲惫',   loc:'南京',   hidden:'南方的支柱，但他太累了'}
+  };
+};
+
+// ============ CREATE STATE ============
+function createState(){
+  var s = { phase:'morning', month:2, day:1, ending:false };
+  s.resources = {treasury:420, supplies:310, military:580, support:45, prestige:55};
+  G.initRegions(s);
+  G.initChars(s);
+  s.vars = {};
+  s.triggered = {};
+  s.policiesUsed = {};
+  s.turnHistory = [];
+  return s;
+}
+
+// ============ DATE ============
+function dateStr(){ var s=G.state; return '崇祯十七年'+G.MONTHS[s.month-1]+'月'+G.DAYS[s.day] }
+function advanceDate(){ G.state.day+=5; while(G.state.day>30){G.state.day-=30;G.state.month++} if(G.state.month>5)checkEndings(); G.turnCount++ }
+
+// ============ BUTTERFLY ENGINE ============
+var BF_RULES = [
+  {id:'r1', c:function(s){return s.regions.shanhaiguan.military<30}, e:[{t:'v',k:'qing_threat',d:20},{t:'l',k:'wu_sangui',d:-5}], n:'山海关兵力空虚，清军虎视眈眈，吴三桂愈感孤立无援'},
+  {id:'r2', c:function(s){return(s.vars.qing_threat||0)>60}, e:[{t:'v',k:'beijing_under_siege',d:1},{t:'r',k:'prestige',d:-8}], n:'清军兵锋已抵关前，朝中议论纷纷，天子威严动摇'},
+  {id:'r3', c:function(s){return s.resources.treasury<100}, e:[{t:'v',k:'corruption_risk',d:1},{t:'l',k:'chen_yan',d:-8}], n:'国库见底，百官薪俸难以为继，朝堂人心涣散'},
+  {id:'r4', c:function(s){return s.resources.support<20}, e:[{t:'v',k:'rebellion_risk',d:1},{t:'r',k:'military',d:-15}], n:'民心已堕谷底，京畿流言四起，军心不稳'},
+  {id:'r5', c:function(s){return s.regions.beijing.military<50&&G.turnCount>12}, e:[{t:'v',k:'li_advances',d:1},{t:'r',k:'prestige',d:-10}], n:'京师守军不足，李自成大军闻风而动，加速推进'},
+  {id:'r6', c:function(s){return s.characters.wu_sangui.loyalty<40}, e:[{t:'v',k:'wu_defect_risk',d:1},{t:'r',k:'military',d:-20}], n:'吴三桂心思动摇，手握重兵之人若生异心，则天下危矣'},
+  {id:'r7', c:function(s){return s.regions.kaifeng.control!=='明'}, e:[{t:'v',k:'central_plains_lost',d:1},{t:'r',k:'support',d:-10},{t:'r',k:'prestige',d:-8}], n:'开封失守，中原门户洞开，王朝腹地暴露于敌前'},
+  {id:'r8', c:function(s){return s.resources.supplies<120}, e:[{t:'r',k:'military',d:-10},{t:'r',k:'support',d:-8},{t:'v',k:'famine',d:1}], n:'粮草告罄，军中节粮，饥馑之象渐显'},
+  {id:'r9', c:function(s){return s.regions.datong.control!=='明'}, e:[{t:'v',k:'north_open',d:1},{t:'r',k:'prestige',d:-12}], n:'大同失陷，北疆门户大开'},
+  {id:'r10',c:function(s){return s.regions.xuanfu.control!=='明'}, e:[{t:'v',k:'beijing_exposed',d:1},{t:'r',k:'prestige',d:-15}], n:'宣府不守，京师以北再无屏障'},
+  {id:'r11',c:function(s){return(s.vars.rebellion_risk||0)>1}, e:[{t:'r',k:'military',d:-20},{t:'r',k:'support',d:-10},{t:'r',k:'supplies',d:-30}], n:'各地叛乱如野火燎原，朝廷处处救火'},
+  {id:'r12',c:function(s){return(s.vars.wu_defect_risk||0)>0&&(s.vars.qing_threat||0)>50}, e:[{t:'l',k:'wu_sangui',d:-10},{t:'v',k:'qing_threat',d:15}], n:'吴三桂与清廷密信往来越发频繁'},
+  {id:'r13',c:function(s){return G.turnCount>10&&(s.vars.li_advances||0)>2}, e:[{t:'r',k:'prestige',d:-8},{t:'r',k:'support',d:-5},{t:'m',k:'beijing',d:-10}], n:'李自成大军压境，京畿百姓开始逃亡'},
+  {id:'r14',c:function(s){return s.resources.treasury<50&&s.resources.supplies<80}, e:[{t:'r',k:'support',d:-10},{t:'v',k:'famine',d:2}], n:'国库与粮仓双双告罄，京城出现抢粮事件'},
+  {id:'r15',c:function(s){return(s.vars.corruption_risk||0)>1}, e:[{t:'r',k:'treasury',d:-20},{t:'l',k:'fan_jingwen',d:-5},{t:'r',k:'support',d:-8}], n:'贪腐蔓延如瘟疫'},
+  {id:'r16',c:function(s){return s.regions.nanjing.military>60&&s.regions.beijing.military<40}, e:[{t:'v',k:'capital_shift',d:1},{t:'r',k:'prestige',d:-5}], n:'南强北弱之势已成'},
+  {id:'r17',c:function(s){return(s.vars.south_prep||0)>2&&s.resources.prestige<30}, e:[{t:'v',k:'south_faction_grows',d:1},{t:'l',k:'chen_yan',d:-10}], n:'南迁派势力暗涨'},
+  {id:'r18',c:function(s){return G.turnCount>12&&s.characters.shi_kefa.loyalty>70}, e:[{t:'r',k:'support',d:5},{t:'r',k:'supplies',d:10}], n:'史可法在江南的治理卓有成效'},
+  {id:'r19',c:function(s){return s.characters.zuo_liangyu.loyalty<20}, e:[{t:'v',k:'zuo_menace',d:1},{t:'r',k:'prestige',d:-8}], n:'左良玉不满溢于言表，军中有人私称其为左王'},
+  {id:'r20',c:function(s){return(s.vars.famine||0)>1&&(s.vars.rebellion_risk||0)>0}, e:[{t:'r',k:'support',d:-15},{t:'v',k:'social_collapse',d:1}], n:'饥荒与叛乱交织，大明根基被掏空'},
+  {id:'r21',c:function(s){return s.regions.beijing.military<25&&G.turnCount>15}, e:[{t:'v',k:'li_advances',d:3},{t:'r',k:'prestige',d:-20}], n:'京师防御形同虚设'},
+  {id:'r22',c:function(s){return(s.vars.beijing_exposed||0)>0&&s.regions.beijing.military<50}, e:[{t:'r',k:'support',d:-10},{t:'r',k:'prestige',d:-8}], n:'京师暴露于敌前，百姓大规模出逃'},
+  {id:'r23',c:function(s){return s.vars.emperor_visited&&s.resources.treasury<150}, e:[{t:'r',k:'military',d:10},{t:'l',k:'wang_chengen',d:5}], n:'天子亲临军营的事迹口口相传'},
+  {id:'r24',c:function(s){return(s.vars.negotiation||0)>0&&(s.vars.li_advances||0)>1}, e:[{t:'v',k:'li_negotiation_fails',d:1},{t:'r',k:'prestige',d:-10}], n:'议和失败，李自成要的是整个龙椅'},
+  {id:'r25',c:function(s){return s.characters.chen_yan.loyalty<20}, e:[{t:'v',k:'chen_defection',d:1},{t:'r',k:'treasury',d:-15}], n:'首辅开始为自己预留后路'},
+  {id:'r26',c:function(s){return(s.vars.social_collapse||0)>0}, e:[{t:'r',k:'support',d:-20},{t:'r',k:'military',d:-15},{t:'r',k:'treasury',d:-20}], n:'社会秩序开始瓦解'},
+  {id:'r27',c:function(s){return s.regions.yangzhou.control!=='明'}, e:[{t:'r',k:'treasury',d:-50},{t:'r',k:'supplies',d:-30}], n:'扬州失陷，盐税断绝'},
+  {id:'r28',c:function(s){return s.characters.princess_cp.loyalty>85&&s.regions.beijing.military<40}, e:[{t:'v',k:'princess_ready',d:1}], n:'长平公主将匕首磨了又磨'},
+  {id:'r29',c:function(s){return(s.vars.qing_invasion||0)>1}, e:[{t:'c',k:'liaodong',v:'清'},{t:'c',k:'shanhaiguan',v:'清'},{t:'m',k:'beijing',d:-20}], n:'清军大举入关，势不可挡'},
+  {id:'r30',c:function(s){return G.turnCount>18&&s.regions.beijing.control==='明'}, e:[{t:'v',k:'historical_deviation',d:1},{t:'r',k:'prestige',d:10}], n:'历史在这里偏离了轨道'}
+];
+
+function applyEffect(e, s){
+  if(e.t==='r'){ var mx=e.k==='support'||e.k==='prestige'?100:1000; s.resources[e.k]=Math.max(0,Math.min(mx,s.resources[e.k]+(e.d||0))) }
+  else if(e.t==='v'){ s.vars[e.k]=(s.vars[e.k]||0)+(e.d||0) }
+  else if(e.t==='l'){ var ch=s.characters[e.k]; if(ch)ch.loyalty=Math.max(0,Math.min(100,ch.loyalty+(e.d||0))) }
+  else if(e.t==='m'){ if(s.regions[e.k])s.regions[e.k].military=Math.max(0,s.regions[e.k].military+(e.d||0)) }
+  else if(e.t==='c'){ if(s.regions[e.k])s.regions[e.k].control=e.v }
+}
+
+function propagate(effs, s){
+  var waves = [{level:1, effs:effs, nars:[]}];
+  var visited = {};
+  for(var lv=2; lv<=6; lv++){
+    var next=[], wn=[];
+    for(var i=0;i<BF_RULES.length;i++){
+      var r=BF_RULES[i];
+      if(visited[r.id])continue;
+      if(r.c(s)){ visited[r.id]=true; for(var j=0;j<r.e.length;j++)next.push(r.e[j]); wn.push(r.n); }
+    }
+    if(next.length===0)break;
+    for(var k=0;k<next.length;k++)applyEffect(next[k],s);
+    waves.push({level:lv, effs:next, nars:wn});
+  }
+  return {waves:waves, diss:waves.length>=6};
+}
+
+// ============ POLICIES ============
+var POLICIES = [
+  {id:'south_move', name:'南迁之议', costT:'prestige', cost:20, once:true, desc:'迁都南京，保存实力', eff:{supplies:-30,military:-80,support:5,prestige:-5}},
+  {id:'liao_tax', name:'加征辽饷', costT:'support', cost:15, once:false, desc:'加征税赋补充国库', eff:{treasury:150,support:-15,military:10}},
+  {id:'call_troops', name:'勤王令', costT:'prestige', cost:10, once:false, desc:'号召各地军队勤王', eff:{military:60,prestige:-8}},
+  {id:'sea_trade', name:'开海禁', costT:'treasury', cost:50, once:false, desc:'开放海上贸易', eff:{support:8}},
+  {id:'self_blame', name:'罪己诏', costT:'prestige', cost:12, once:false, desc:'下诏罪己，安抚民心', eff:{support:18,prestige:-12}},
+  {id:'dongchang', name:'整饬东厂', costT:'prestige', cost:15, once:false, desc:'加强情报网络', eff:{prestige:-15,support:-5}},
+  {id:'crown_prince', name:'册立太子', costT:'prestige', cost:0, once:true, desc:'稳定国本，续统有望', eff:{support:10}},
+  {id:'amnesty', name:'大赦天下', costT:'prestige', cost:8, once:false, desc:'大赦囚徒，以示天恩', eff:{support:10,prestige:-5}},
+  {id:'cut_officials', name:'裁撤冗员', costT:'prestige', cost:5, once:false, desc:'精简官僚，节省开支', eff:{treasury:50,prestige:-5,support:-5}},
+  {id:'fortify', name:'加固城防', costT:'treasury', cost:100, once:false, desc:'修缮京师城墙', eff:{}},
+  {id:'settle_refugees', name:'招抚流民', costT:'supplies', cost:60, once:false, desc:'开设粥厂安置难民', eff:{support:15}},
+  {id:'ally_qing', name:'联虏平寇', costT:'prestige', cost:25, once:false, desc:'联络清军共剿李自成', eff:{prestige:-25,support:-15}}
+];
+
+function executePolicy(p){
+  var s=G.state; if(p.once&&s.policiesUsed[p.id])return;
+  var costKey=p.costT==='prestige'?'prestige':p.costT==='support'?'support':p.costT==='treasury'?'treasury':'supplies';
+  if(s.resources[costKey]<p.cost)return;
+  s.resources[costKey]=Math.max(0,s.resources[costKey]-p.cost);
+  var all=[];
+  for(var k in p.eff){ var mx=k==='support'||k==='prestige'?100:1000; s.resources[k]=Math.max(0,Math.min(mx,s.resources[k]+p.eff[k])); all.push({t:'r',k:k,d:p.eff[k]}); }
+  var bf=propagate(all,s); s.policiesUsed[p.id]=true;
+  G.decisionLog.push({turn:G.turnCount, date:dateStr(), event:'国策：'+p.name, choice:'启用'});
+  renderAll();
+  if(bf.waves.length>1)showButterfly(p.name+'（国策）','启用',bf);
+}
+
+// ============ EVENTS ============
+var ALL_EVENTS = [
+{id:'changping_falls', title:'昌平陷落，京畿震动', once:true,
+ cond:function(s){return G.turnCount>=8},
+ text:'三月十五。昌平的烽火已经燃了整整一夜。探马回报时，马蹄声碎得像是敲在心尖上——闯军前锋已过居庸关，距京师不足百里。王承恩跪在御案前，双手呈上塘报，指尖的颤抖比塘报上的字迹更触目惊心。窗外，北风呜咽，像是十年前流寇初起时那些自山陕传来的饥民哀嚎——只不过这一次，哀嚎已在城外了。',
+ choices:[
+  {label:'紧急布防', desc:'调集京营全部兵力，死守京师九门', effs:[{t:'m',k:'beijing',d:25},{t:'r',k:'supplies',d:-20},{t:'v',k:'beijing_mobilized',d:1}], bf:'京营紧急集结，京师九门如临大敌。城墙上火把彻夜不熄。'},
+  {label:'遣使议和', desc:'密遣使者与李自成谈判，争取时间', effs:[{t:'r',k:'prestige',d:-15},{t:'v',k:'negotiation',d:1},{t:'r',k:'support',d:5}], bf:'密使星夜出城，携御笔书信前往闯营。此举虽折损天威，却或许能拖延三至五日。'},
+  {label:'准备南迁', desc:'暗中筹备南迁事宜，安排后路', effs:[{t:'v',k:'south_prep',d:1},{t:'r',k:'prestige',d:-8},{t:'r',k:'support',d:-3}], bf:'宫内车马已备。周皇后默默收拾细软，长平公主将匕首藏得更深了些。'}
+ ]},
+{id:'wu_asks_pay', title:'吴三桂请饷',
+ cond:function(s){return G.turnCount>=4&&s.regions.shanhaiguan.military<40},
+ text:'四百里加急塘报，来自山海关。吴三桂的字迹遒劲有力——"关宁铁骑三月未发饷银，将士有怨。若再拖延，恐生变故。"字里行间，与其说是奏请，不如说是警告。王承恩低声禀报：辽东总兵手握五万精锐，此刻若生异心，则京师危在旦夕。',
+ choices:[
+  {label:'如数拨付', desc:'从国库拨银八十万两，安抚吴三桂', effs:[{t:'r',k:'treasury',d:-80},{t:'l',k:'wu_sangui',d:10},{t:'m',k:'shanhaiguan',d:10}], bf:'饷银送达山海关，关宁军中欢声雷动。但户部库房益发见底了。'},
+  {label:'暂缓拨付', desc:'以国库空虚为由，请吴三桂再坚持', effs:[{t:'l',k:'wu_sangui',d:-8},{t:'v',k:'wu_discontent',d:1}], bf:'朝廷回文：暂缓。吴三桂将文书摔在案上，沉默良久。'},
+  {label:'亲笔安抚', desc:'御笔亲书，以情动之', effs:[{t:'l',k:'wu_sangui',d:-3},{t:'r',k:'prestige',d:3}], bf:'御笔书信送至山海关，字字恳切。吴三桂读罢，长叹一声。'}
+ ]},
+{id:'qing_at_gate', title:'清军叩关',
+ cond:function(s){return G.turnCount>=10&&s.regions.shanhaiguan.military<30},
+ text:'山海关外，八旗军的旌旗已隐约可见。多尔衮的亲笔书信送到了吴三桂案头——"将军若能开关，大清必以王爵相待。"同一日，京师也收到了密报：清军主力已从盛京开拔，方向正是山海关。满朝文武，无一人能安坐。',
+ choices:[
+  {label:'增兵山海关', desc:'从京营抽调兵力驰援山海关', effs:[{t:'m',k:'shanhaiguan',d:30},{t:'m',k:'beijing',d:-20},{t:'l',k:'wu_sangui',d:8}], bf:'京营人马出城东去，沿途百姓夹道相送。但京师城头，守军稀落了许多。'},
+  {label:'加固关防', desc:'拨银修缮山海关城墙', effs:[{t:'r',k:'treasury',d:-50},{t:'m',k:'shanhaiguan',d:15}], bf:'工匠日夜赶工，山海关城墙焕然一新。但银子从户部出去，如流水一般。'},
+  {label:'试探联清', desc:'秘密遣使与多尔衮接触', effs:[{t:'v',k:'qing_contact',d:1},{t:'r',k:'prestige',d:-20},{t:'r',k:'support',d:-8}], bf:'一骑快马奔向关外。此信一送，大明与清廷之间那层薄薄的纱幕便被掀开了一角。'}
+ ]},
+{id:'datong_crisis', title:'大同告急',
+ cond:function(s){return G.turnCount>=6&&s.regions.datong.military<35},
+ text:'大同总兵姜瓖的求援信一封接一封。信纸被汗水和泪水浸得字迹模糊——"贼众十万围城，城中粮尽，将士以树皮充饥。若再无援军，大同必陷。"大同是京师的北面屏障，一旦有失，宣府、昌平便门户洞开。兵部堂上，众将面面相觑，无人敢领兵北上。',
+ choices:[
+  {label:'派兵驰援', desc:'从京营抽调兵力北上', effs:[{t:'m',k:'datong',d:25},{t:'m',k:'beijing',d:-15},{t:'r',k:'prestige',d:5}], bf:'援军北上，沿途百姓焚香跪送。大同城头，守军看到远方烟尘，相拥而泣。'},
+  {label:'令其坚守', desc:'回复大同总兵坚守待援', effs:[{t:'m',k:'datong',d:-10},{t:'v',k:'datong_critical',d:1},{t:'r',k:'support',d:-5}], bf:'朝廷的回文只有四个字：坚守待援。姜瓖将文书揉成一团，掷于地下。'},
+  {label:'密令撤退', desc:'令姜瓖率精锐弃城退守宣府', effs:[{t:'c',k:'datong',v:'顺'},{t:'m',k:'xuanfu',d:15},{t:'r',k:'prestige',d:-10}], bf:'夜半，大同西门悄然洞开。残军裹挟着百姓，在夜色中向宣府退去。'}
+ ]},
+{id:'zuo_not_move', title:'左良玉拥兵不动',
+ cond:function(s){return G.turnCount>=5},
+ text:'武昌。左良玉坐拥二十万大军，却按兵不动。朝廷连下三道诏书，他只回了一封奏折——"粮饷不济，大军难行。"这四个字，每个都像在嘲笑千里之外的朝廷。户部官员私下议论：左良玉兵多将广，他若肯出兵勤王，闯军何足惧？',
+ choices:[
+  {label:'拨粮催战', desc:'挤出粮草补给，催促左良玉出兵', effs:[{t:'r',k:'supplies',d:-40},{t:'l',k:'zuo_liangyu',d:5},{t:'v',k:'zuo_marching',d:1}], bf:'粮船沿长江逆流而上。左良玉收到粮食，终于下令拔营——但行军速度，比老牛拉车还慢。'},
+  {label:'严旨切责', desc:'下诏严厉斥责左良玉', effs:[{t:'l',k:'zuo_liangyu',d:-10},{t:'v',k:'zuo_hostile',d:1},{t:'r',k:'prestige',d:-3}], bf:'严旨送到武昌。左良玉当众读完，冷笑一声，将诏书搁在一旁，继续饮酒。'},
+  {label:'好言抚慰', desc:'以褒奖封赏为饵，怀柔笼络', effs:[{t:'l',k:'zuo_liangyu',d:3},{t:'r',k:'prestige',d:-5}], bf:'嘉奖诏书连同金银一起送到。左良玉捋须微笑：陛下还记得老臣。'}
+ ]},
+{id:'jingying_mutiny', title:'京营哗变',
+ cond:function(s){return s.resources.treasury<100&&s.resources.support<30},
+ text:'惊蛰之夜，本该寂静的京师被一阵嘈杂打破。京营三大营的部分兵士聚集在营房外，高喊发饷。他们已三月未领饷银，家小嗷嗷待哺。把总试图弹压，却被推倒在地。消息传到乾清宫时，崇祯帝正在批阅奏章——笔尖在纸上顿住，墨迹洇开了一团。',
+ choices:[
+  {label:'亲自安抚', desc:'御驾亲临军营，当面承诺发饷', effs:[{t:'r',k:'prestige',d:5},{t:'r',k:'supplies',d:-15},{t:'v',k:'emperor_visited',d:1}], bf:'崇祯帝步行进入营区，没有仪仗，没有扈从。兵士们跪了一地，有人失声痛哭。天子扶起一个老兵，将自己的斗篷披在他肩上。'},
+  {label:'紧急筹银', desc:'向内库和百官借银发饷', effs:[{t:'r',k:'treasury',d:30},{t:'l',k:'chen_yan',d:-5},{t:'r',k:'support',d:5}], bf:'崇祯帝率先捐出内库所有，百官不得不跟进。首辅陈演的捐银最少，脸色却最难看。'},
+  {label:'武力镇压', desc:'令锦衣卫弹压哗变', effs:[{t:'r',k:'military',d:-15},{t:'r',k:'support',d:-10},{t:'r',k:'prestige',d:3}], bf:'锦衣卫出动，刀光在街巷间闪过。哗变平息了，但地上的血迹要很久才能洗净。'}
+ ]},
+{id:'kaifeng_falls', title:'开封易手',
+ cond:function(s){return G.turnCount>=7&&s.regions.kaifeng.military<40},
+ text:'开封城破的消息传到北京，比塘报上写的晚了两天——因为报信的驿卒在路上被流民拦下，马匹被抢。河南巡抚的信纸皱巴巴的："贼军掘开黄河大堤，水淹开封，城中十室九空。臣无能，臣有罪，开封……陷了。"读到这里，崇祯帝感到一阵眩晕。中原腹地，就此落入敌手。',
+ choices:[
+  {label:'安抚难民', desc:'拨款接济从开封逃出的难民', effs:[{t:'r',k:'treasury',d:-30},{t:'r',k:'support',d:10},{t:'r',k:'supplies',d:-20}], bf:'粥棚在城外搭起，数万开封难民涌入京师。每一口粥都要从已然见底的粮仓里挤出来。'},
+  {label:'组织反攻', desc:'令左良玉从武昌北上收复开封', effs:[{t:'v',k:'kaifeng_counter',d:1},{t:'l',k:'zuo_liangyu',d:-5}], bf:'命令传到武昌。左良玉看完，将文书转给幕僚：你们看，天子要我拿自己的兵去填开封的坑。'},
+  {label:'追究责任', desc:'追究河南官员失城之罪', effs:[{t:'r',k:'prestige',d:-5},{t:'m',k:'wuchang',d:10},{t:'l',k:'fan_jingwen',d:5}], bf:'刑部下发追责文书，河南大小官员人人自危。'}
+ ]},
+{id:'xuanfu_mutiny', title:'宣府兵变',
+ cond:function(s){return s.resources.supplies<150},
+ text:'宣府巡抚的急报在案头已经摆了三天。信上的每一个字都像在滴血——"宣府粮尽，兵士以草根充饥。昨夜有五百人脱营，不知去向。余者鼓噪于粮仓前，情势一触即发。"宣府是京师的门户，若此地兵变，北京便再无屏障可言。',
+ choices:[
+  {label:'紧急运粮', desc:'从京师粮仓挤出粮食运往宣府', effs:[{t:'r',k:'supplies',d:-30},{t:'m',k:'xuanfu',d:10},{t:'r',k:'support',d:3}], bf:'运粮车队在夜色中出发。宣府城头，饿了三天的士兵看到粮车时，有人跪下了。'},
+  {label:'遣使慰抚', desc:'派钦差携带御笔信慰问将士', effs:[{t:'r',k:'prestige',d:3},{t:'m',k:'xuanfu',d:5}], bf:'钦差到达宣府，当众宣读御笔慰问信。将士们安静下来，但眼神里仍有疑惧。'},
+  {label:'处决为首者', desc:'严令巡抚处决鼓噪为首之人', effs:[{t:'m',k:'xuanfu',d:-10},{t:'r',k:'support',d:-8},{t:'r',k:'prestige',d:-3}], bf:'宣府城头挂起了十几颗人头。活着的士兵眼里，藏着比饥饿更危险的东西。'}
+ ]},
+{id:'shanhai_showdown', title:'山海关决战',
+ cond:function(s){return G.turnCount>=14&&s.regions.shanhaiguan.military>25},
+ text:'四月。历史的笔悬在了山海关的上空。多尔衮的八旗主力已抵关前三十里，而吴三桂的关宁军正在进行最后的部署。他知道，这不仅仅是一场战役——这是决定三个政权命运的时刻。关内是大明和大顺的决斗，关外是清朝的虎视。一着不慎，万劫不复。',
+ choices:[
+  {label:'全力守关', desc:'令吴三桂死守山海关', effs:[{t:'m',k:'shanhaiguan',d:20},{t:'l',k:'wu_sangui',d:5}], bf:'山海关上，吴三桂拔剑盟誓：关在人在，关亡人亡。'},
+  {label:'许以重赏', desc:'以裂土封王激励吴三桂死战', effs:[{t:'r',k:'prestige',d:-10},{t:'l',k:'wu_sangui',d:12},{t:'m',k:'shanhaiguan',d:15}], bf:'圣旨到了——若能守住山海关，可封王爵，世袭罔替。吴三桂眼中闪过一丝光芒。'},
+  {label:'战略性撤退', desc:'令吴三桂弃关南下保存实力', effs:[{t:'c',k:'shanhaiguan',v:'清'},{t:'m',k:'beijing',d:30},{t:'r',k:'prestige',d:-20}], bf:'关门在夜色中悄然洞开——关宁军默默地撤出了这座天下第一关。身后，关门虚掩。'}
+ ]},
+{id:'court_south_debate', title:'廷议南迁之辩',
+ cond:function(s){return G.turnCount>=2},
+ text:'早朝。乾清宫大殿，满朝文武分列两班。工部尚书范景文率先出班，言语铿锵："陛下，京师已不可守。南迁陪都，保存国脉，此乃上策。"话音未落，首辅陈演便行礼道："天子守国门，君王死社稷。弃京南迁，何以面对列祖列宗？"两派争执不下。崇祯帝坐在龙椅上，目光扫过每一张面孔。',
+ choices:[
+  {label:'支持南迁', desc:'采纳范景文等的主张着手准备南迁', effs:[{t:'v',k:'south_prep',d:2},{t:'r',k:'prestige',d:-10},{t:'l',k:'fan_jingwen',d:8},{t:'l',k:'chen_yan',d:-5}], bf:'天子倾向南迁的消息从殿中传出。周皇后闻讯，在坤宁宫中焚香长拜。'},
+  {label:'坚决留守', desc:'明确表态绝不弃京以定人心', effs:[{t:'r',k:'prestige',d:8},{t:'l',k:'chen_yan',d:5},{t:'v',k:'stay_beijing',d:1}], bf:'朕绝不弃祖宗陵寝。天子一言九鼎，殿中有人暗自敬佩，有人暗暗叫苦。'},
+  {label:'模棱两可', desc:'暂不下结论，先议其他事务', effs:[{t:'r',k:'prestige',d:-5},{t:'v',k:'decision_delayed',d:1}], bf:'天子不置可否，群臣各怀心思退出大殿。范景文回头望了一眼空荡荡的龙椅，叹了口气。'}
+ ]},
+{id:'prime_minister_resign', title:'首辅请辞',
+ cond:function(s){return G.turnCount>=3&&s.characters.chen_yan.loyalty<35},
+ text:'早朝过半，首辅陈演出班叩首："臣年迈体衰，不堪重任，恳请陛下准臣致仕还乡。"言辞恳切，眼眶微红。但殿中所有人都知道——这是以退为进。他在试探天子是否还需要他这个首辅。还是说，他已经听到了什么风声？',
+ choices:[
+  {label:'准其所请', desc:'顺水推舟，准其致仕', effs:[{t:'l',k:'chen_yan',d:-20},{t:'l',k:'fan_jingwen',d:5},{t:'r',k:'prestige',d:5}], bf:'陈演没想到天子竟如此干脆，叩头谢恩时，额头撞在金砖上，声音空洞得让人心悸。'},
+  {label:'温言挽留', desc:'好言劝慰并表示信任如初', effs:[{t:'l',k:'chen_yan',d:5},{t:'r',k:'prestige',d:-3}], bf:'卿乃国家柱石，岂可轻言去留？陈演叩谢天恩，嘴角泛起一丝不易察觉的笑意。'},
+  {label:'置之不理', desc:'将奏折留中不发', effs:[{t:'l',k:'chen_yan',d:-8},{t:'v',k:'chen_resentment',d:1}], bf:'奏折留在御案上，数日未批。陈演每日入阁，看到那张原封不动的奏折，脊背发凉。'}
+ ]},
+{id:'censor_death_advice', title:'言官死谏',
+ cond:function(s){return G.turnCount>=4},
+ text:'都察院御史刘宗周跪在午门外已经三个时辰。他双手高举一封奏疏，额头上磕出的血已凝固成暗红色的痂。"臣冒死进言：今日之祸，不在流寇，不在建虏，而在朝纲败坏、人心离散。陛下若能下诏罪己、开释言路、罢黜庸臣，则天下事尚可为。"每说一句，便叩一次头。宫砖上，已是一片暗红。',
+ choices:[
+  {label:'纳谏如流', desc:'亲自出殿扶起刘宗周采纳其言', effs:[{t:'r',k:'prestige',d:5},{t:'r',k:'support',d:8},{t:'l',k:'fan_jingwen',d:8}], bf:'崇祯帝走出殿门，亲手扶起刘宗周。老御史泪流满面：老臣死而无憾矣！'},
+  {label:'温言安抚', desc:'好言安抚但暂不采纳', effs:[{t:'r',k:'prestige',d:-3},{t:'r',k:'support',d:3}], bf:'天子温言劝慰，赐了药，但奏疏上的谏言一条未准。刘宗周被人扶出宫门时，仰天长叹。'},
+  {label:'斥其狂妄', desc:'怒斥刘宗周危言耸听', effs:[{t:'r',k:'prestige',d:-8},{t:'r',k:'support',d:-12},{t:'l',k:'fan_jingwen',d:-10}], bf:'天子震怒。刘宗周被架出宫门时，仍在高呼：臣死不足惜，惜陛下之不得闻真言也！'}
+ ]},
+{id:'donglin_conflict', title:'东林党争激化',
+ cond:function(s){return G.turnCount>=5},
+ text:'吏部大堂，东林党人与阉党余孽为选官一事争执不下。东林人士举荐清流，阉党余部力推旧人。双方剑拔弩张，几乎要在堂上动手。消息传到乾清宫，崇祯帝握笔的手微微一顿——他不是不知道党争之害，但此刻流寇已在城外，这些人还在争权夺利。',
+ choices:[
+  {label:'打压阉党', desc:'清算阉党余孽，扶持清流', effs:[{t:'l',k:'cao_huachun',d:-8},{t:'r',k:'support',d:8}], bf:'天子站在了东林一边。曹化淳退下时，脸上挂着笑，眼中却没有笑意。'},
+  {label:'打压东林', desc:'借机打压东林党', effs:[{t:'l',k:'fan_jingwen',d:-10},{t:'r',k:'support',d:-8}], bf:'天子偏向了阉党余部。东林党人默然退出大殿，但眼神里满是失望。'},
+  {label:'各打五十', desc:'对双方都加申斥要求以国事为重', effs:[{t:'r',k:'prestige',d:-5},{t:'v',k:'faction_tension',d:1}], bf:'天子拍案怒斥：国将不国，尔等还在此争权夺利！大殿一时鸦雀无声。'}
+ ]},
+{id:'cao_report', title:'曹化淳密报',
+ cond:function(s){return G.turnCount>=6},
+ text:'夜。曹化淳跪在御书房中，他带来的密报摊在龙案上，烛光下墨迹未干。"陛下，臣已查明——朝中有人与闯军暗通书信。不止一人。有人在为自己预留后路。"他从袖中取出一份名单，小心翼翼地推过案面。名单上的名字，有几个让崇祯帝呼吸一滞。',
+ choices:[
+  {label:'下令彻查', desc:'令东厂全面调查不放过任何人', effs:[{t:'l',k:'cao_huachun',d:8},{t:'r',k:'prestige',d:-5},{t:'v',k:'purge_ongoing',d:1}], bf:'东厂缇骑连夜出动。京师各大臣府邸外，多了一些在夜色中徘徊的身影。'},
+  {label:'只诛首恶', desc:'只处理名单上最关键的几人', effs:[{t:'r',k:'prestige',d:5},{t:'v',k:'traitors_purged',d:1}], bf:'数日之内，三位大臣被秘密逮捕。他们的府邸被抄时，果真搜出了与闯营来往的书信。'},
+  {label:'按兵不动', desc:'暂不动作以免惊蛇', effs:[{t:'l',k:'cao_huachun',d:-3},{t:'v',k:'traitors_unknown',d:1}], bf:'天子将名单锁入匣中。暂勿声张。曹化淳退下时，回头看了一眼那个匣子。'}
+ ]},
+{id:'corruption_case', title:'吏部贪腐案发',
+ cond:function(s){return G.turnCount>=7},
+ text:'吏部文选司郎中被人举报——卖官鬻爵，明码标价。户科给事中的弹劾奏章写得触目惊心：一个知县的职位，标价三千两；一个知府，一万五千两。而这些银子，本该是朝廷的赋税、将士的军饷。更令崇祯帝心惊的是，涉案名单往上追溯，隐隐牵扯到了内阁。',
+ choices:[
+  {label:'严查到底', desc:'不论涉及何人一查到底', effs:[{t:'r',k:'prestige',d:8},{t:'r',k:'treasury',d:40},{t:'l',k:'chen_yan',d:-10}], bf:'锦衣卫抄了三座府邸，起出白银数十万两。但线索到了内阁门前，调查便再难寸进。'},
+  {label:'只办主犯', desc:'惩办直接责任人不扩大波及面', effs:[{t:'r',k:'treasury',d:20},{t:'r',k:'support',d:5}], bf:'文选司郎中下狱，家产充公。但更高层的牵连，被一道密旨轻轻揭过了。'},
+  {label:'密令销毁', desc:'为稳定局势密令将证据销毁', effs:[{t:'r',k:'prestige',d:-10},{t:'v',k:'corruption_worsens',d:1}], bf:'一份密旨送入刑部。证物在深夜被销毁。弹劾的御史被调往外地。京城舆论，一片哗然。'}
+ ]},
+{id:'peacenik_rise', title:'议和派抬头',
+ cond:function(s){return G.turnCount>=8},
+ text:'朝堂之上，议和的声音越来越大。以礼部侍郎为首的一批官员开始公开讨论与李自成谈判的条件——割让西北三省，封李自成为秦王，换取闯军退兵。此论一出，满殿哗然。范景文怒发冲冠："割地求和，与卖国何异？"而兵部堂官却沉默不语——或许，他们知道朝廷已无力再战。',
+ choices:[
+  {label:'严辞拒绝', desc:'坚决反对议和表明死战决心', effs:[{t:'r',k:'prestige',d:5},{t:'l',k:'fan_jingwen',d:8},{t:'r',k:'military',d:10}], bf:'朕宁死不降贼。天子的声音在殿中回荡。范景文眼中含泪，几欲下拜。'},
+  {label:'秘密试探', desc:'暗中派人试探议和条件', effs:[{t:'v',k:'secret_peace',d:1},{t:'r',k:'prestige',d:-8}], bf:'一队扮作商人的密使悄悄出了城门。他们的行囊里，藏着天子的密信。'},
+  {label:'公开议和', desc:'宣布与李自成谈判', effs:[{t:'r',k:'prestige',d:-20},{t:'r',k:'support',d:5},{t:'v',k:'open_negotiation',d:1}], bf:'议和的诏书公布天下。京师百姓松了口气，但前线将士闻之，士气大跌。'}
+ ]},
+{id:'prince_education', title:'太子出阁读书议',
+ cond:function(s){return G.turnCount>=11&&s.policiesUsed&&s.policiesUsed['crown_prince']},
+ text:'太子朱慈烺已满十四岁，按祖制当出阁读书——这是太子正式接触政务的开始。翰林院推举了几位讲官人选，但人选背后是东林与阉党残留势力的角力。讲官是谁，意味着太子将受谁的影响。崇祯帝看着这份名单，知道这不仅仅是一份名单——这是未来朝局的格局。',
+ choices:[
+  {label:'起用东林', desc:'选用东林系的儒臣为太子讲官', effs:[{t:'l',k:'fan_jingwen',d:8},{t:'r',k:'support',d:5},{t:'l',k:'cao_huachun',d:-5}], bf:'东宫开课之日，京城儒生奔走相告。范景文亲自写了一篇东宫劝学文，在士林间广为传抄。'},
+  {label:'平衡用人', desc:'在各方势力中各选一人以示平衡', effs:[{t:'r',k:'prestige',d:-3},{t:'v',k:'court_balanced',d:1}], bf:'讲官班子里有东林、有旧党、有实务派。太子每天听不同的观点。'},
+  {label:'亲自教导', desc:'决定由自己亲自教导太子', effs:[{t:'r',k:'prestige',d:5},{t:'r',k:'support',d:3}], bf:'崇祯帝亲自坐在东宫书房中，为太子讲解资治通鉴。窗外，隐约传来远处城墙上的号角声。'}
+ ]},
+{id:'harem_politics', title:'后宫干政之议',
+ cond:function(s){return G.turnCount>=9},
+ text:'周皇后在坤宁宫召见了范景文的夫人，询问南迁准备事宜。这本是寻常的后宫交际，却被曹化淳的东厂探子记录在案，呈报到御前时已添油加醋——"皇后干政，交通外臣。"崇祯帝看着这份密报，心头涌起复杂的感受。他知道皇后是一片苦心，但祖制明文禁止后宫干政。',
+ choices:[
+  {label:'信任皇后', desc:'不追究此事暗示对皇后的信任', effs:[{t:'l',k:'empress_zhou',d:5},{t:'l',k:'cao_huachun',d:-5}], bf:'天子将密报搁置一旁，未作任何批示。周皇后知道后，在佛像前跪了很久。'},
+  {label:'训诫皇后', desc:'温和提醒皇后注意分寸', effs:[{t:'l',k:'empress_zhou',d:-5},{t:'r',k:'prestige',d:3}], bf:'天子来到坤宁宫，语气温和却严肃：后宫不得干政，祖宗之制不可废。'},
+  {label:'怒斥东厂', desc:'斥责曹化淳挑拨皇家关系', effs:[{t:'l',k:'cao_huachun',d:-10},{t:'r',k:'prestige',d:-3}], bf:'天子将密报掷在曹化淳面前：朕的家事，不劳东厂费心。曹化淳退下时眼中闪过一丝阴冷。'}
+ ]},
+{id:'will_discussion', title:'遗诏之议',
+ cond:function(s){return G.turnCount>=13},
+ text:'文渊阁大学士范景文夤夜求见。他跪在御前，声音低得像怕被殿外的夜风听去："陛下，恕臣直言——此时当留遗诏，以正国本。若有不测，大明后继有人，方可维系人心。"遗诏。这两个字像冰锥子一样扎进崇祯帝的心口。他才三十四岁。但范景文说的是实话——京师被围，谁也不知道明天会发生什么。',
+ choices:[
+  {label:'立下遗诏', desc:'正式写下遗诏确立继承人', effs:[{t:'r',k:'prestige',d:-5},{t:'r',k:'support',d:10}], bf:'御笔落下，遗诏写成。崇祯帝将它封入锦匣，交给王承恩密藏。这一夜，乾清宫的烛火彻夜未熄。'},
+  {label:'暂不声张', desc:'口头交代王承恩但不留书面', effs:[{t:'v',k:'will_prepared',d:1},{t:'r',k:'prestige',d:-2}], bf:'天子只对王承恩低声说了几句话。老太监听罢，浑身颤抖，跪下叩了三个头。'},
+  {label:'怒斥不吉', desc:'斥责范景文咒君', effs:[{t:'l',k:'fan_jingwen',d:-8},{t:'r',k:'prestige',d:-3}], bf:'朕正值壮年，何需遗诏！天子震怒。范景文退出乾清宫时，老泪纵横。'}
+ ]},
+{id:'capital_famine', title:'京畿饥荒',
+ cond:function(s){return G.turnCount>=6&&s.resources.supplies<200},
+ text:'二月将尽，京畿各村的粥棚前，队伍从卯时排到午时。粥越来越稀——从米汤到清水里漂着几粒米。老人把粥留给孙儿，自己嚼着树皮。顺天府尹的奏报上说，京郊已有三百余人饿死。而运粮的漕船，被冻在通州以北的运河中。崇祯帝手中的粥碗，也已是第三日不见米粒。',
+ choices:[
+  {label:'号召节粮', desc:'号召宫中及百官节粮与民共苦', effs:[{t:'r',k:'supplies',d:-20},{t:'r',k:'prestige',d:8},{t:'r',k:'support',d:10}], bf:'乾清宫的御膳减为两道菜。崇祯帝脱下锦袍，换上了补过的旧衣。消息传出，百官纷纷效仿。'},
+  {label:'开仓放粮', desc:'打开京仓赈济灾民', effs:[{t:'r',k:'supplies',d:-50},{t:'r',k:'support',d:15}], bf:'京仓大门打开，百姓排着长队领粮。每一勺粥分出去，粮仓就浅一分——但至少今夜，有人不会饿死了。'},
+  {label:'驱散饥民', desc:'令五城兵马司驱散聚集的饥民', effs:[{t:'r',k:'support',d:-20},{t:'r',k:'prestige',d:-10}], bf:'官兵出动，将城外粥棚拆毁，驱散饥民。哭号声中，有人倒在了路边。'}
+ ]},
+{id:'supply_line_cut', title:'粮道被断',
+ cond:function(s){return G.turnCount>=8},
+ text:'闯军切断了京杭大运河通州段，所有漕运粮船无法北上。户部尚书急得在堂上团团转："京仓存粮，只够支撑十五日！"运河是京师的生命线，如今这条线断了。南方堆积如山的粮食，在扬州码头腐烂，而北京的百姓却在挨饿。',
+ choices:[
+  {label:'抢夺敌粮', desc:'派精兵奇袭闯军粮道夺取粮食', effs:[{t:'r',k:'military',d:-10},{t:'r',k:'supplies',d:30},{t:'r',k:'prestige',d:5}], bf:'一支轻骑趁夜出城，绕道袭击了闯军的粮营。火光冲天中，粮食被抢回。'},
+  {label:'陆路转运', desc:'令沿途州县以骡马转运粮食', effs:[{t:'r',k:'supplies',d:-20},{t:'r',k:'support',d:3}], bf:'骡马队从山东出发，沿着被战火蹂躏的官道艰难北上。运到的每一粒粮食，都浸透了民夫的汗水。'},
+  {label:'坚壁清野', desc:'令京畿百姓将粮食藏入城内', effs:[{t:'r',k:'support',d:-5},{t:'r',k:'supplies',d:10}], bf:'京畿各村的百姓赶着牛车，载着最后一袋粮食涌向城门。他们回望身后冒着烟的村庄，眼泪和着尘土。'}
+ ]},
+{id:'salt_collapse', title:'盐政崩溃',
+ cond:function(s){return G.turnCount>=9},
+ text:'扬州盐运司的八百里加急送到了户部——两淮盐场大半停工。盐工逃散，盐船停运，原因是扬州城内出现了闯军的细作，散布谣言说朝廷即将弃守江南。盐税是大明财政的半壁江山，盐政崩则国库崩。户部尚书看完文书，面如土色。',
+ choices:[
+  {label:'减免盐税', desc:'暂减盐税安抚盐工和盐商', effs:[{t:'r',k:'treasury',d:-10},{t:'r',k:'support',d:12}], bf:'减税令下，扬州盐商们终于松了一口气。盐场重新冒起了炊烟。'},
+  {label:'委派钦差', desc:'派钦差大臣赴扬州整顿盐政', effs:[{t:'r',k:'treasury',d:5},{t:'v',k:'salt_reform',d:1}], bf:'钦差大臣南下扬州，大刀阔斧整顿盐务。抓了一批贪官，开了一批盐场。'},
+  {label:'派兵弹压', desc:'令扬州卫所出兵恢复盐场秩序', effs:[{t:'r',k:'military',d:-10},{t:'r',k:'treasury',d:15},{t:'r',k:'support',d:-5}], bf:'扬州卫的兵士开进盐场。盐工们被迫复工，但每一铲盐都挖得无精打采。'}
+ ]},
+{id:'currency_collapse', title:'铜钱贬值',
+ cond:function(s){return G.turnCount>=10},
+ text:'京师米价一日三涨。早上还能买一斗米的铜钱，到了傍晚只够买半斗。钱铺门口挤满了兑换银两的百姓——铜钱在贬值，谁都想要银子。可银子在哪里？户部的银库，连老鼠都饿跑了。崇祯帝从王承恩口中得知：市面上出现了私铸的劣钱，铜中掺铅，钱薄如纸。',
+ choices:[
+  {label:'严打私铸', desc:'令东厂查禁私铸铜钱重惩奸商', effs:[{t:'r',k:'treasury',d:10},{t:'l',k:'cao_huachun',d:5},{t:'r',k:'support',d:-3}], bf:'东厂查封了数家钱铺，起出私铸模具。铸钱炉被砸毁，但铜钱的信誉已经被砸碎。'},
+  {label:'发行银票', desc:'以朝廷信用发行银票替代铜钱', effs:[{t:'r',k:'prestige',d:-8},{t:'r',k:'treasury',d:20}], bf:'第一批银票印出来时，百姓将信将疑。但当朝廷用银票发了第一批军饷后，市场终于开始慢慢接受。'},
+  {label:'听之任之', desc:'不加干预让市场自行调节', effs:[{t:'r',k:'support',d:-10},{t:'v',k:'inflation_worsens',d:1}], bf:'朝廷选择了观望。米价继续涨，钱值继续跌。百姓用麻袋背着铜钱去买米。'}
+ ]},
+{id:'plague_outbreak', title:'疫病蔓延',
+ cond:function(s){return G.turnCount>=7},
+ text:'京西营房，兵士中出现了怪病——发热、咳嗽、浑身青斑。军医起初以为是伤寒，直到病人接二连三地死去，才发现这可能是瘟疫。疫情从军营蔓延到民居，从西城扩散到全城。太医院的御医们跪在乾清宫外：防疫需要药材、石灰、隔离营地——这些都是钱。而国库，已拿不出分文。',
+ choices:[
+  {label:'全力防疫', desc:'拨银采购药材设立隔离营', effs:[{t:'r',k:'treasury',d:-40},{t:'r',k:'support',d:10},{t:'r',k:'military',d:-5}], bf:'隔离营在城外搭起，石灰撒遍街巷。药方贴满了京城的每一个坊门。疫情被控制住了。'},
+  {label:'求助民间', desc:'号召富商和寺庙出力防疫', effs:[{t:'r',k:'prestige',d:-5},{t:'r',k:'support',d:5}], bf:'京师各大寺庙开门施药，富商捐银建隔离棚。这是一场官民合作的救援。'},
+  {label:'封营隔离', desc:'只隔离军营不管民间扩散', effs:[{t:'r',k:'military',d:-15},{t:'r',k:'support',d:-12}], bf:'西城营房被木栅封锁，里面的兵士仰望天空，等待命运的安排。'}
+ ]},
+{id:'refugee_siege', title:'流民围城',
+ cond:function(s){return G.turnCount>=10},
+ text:'北京城门外，聚集了从河北各地逃难而来的流民。人数过万，黑压压地铺在城外的田野上，像一片活着的地毯。他们在城墙下搭起窝棚，每日到城门下乞食。守门官不敢开门——开了，这上万人就会像洪水一样涌入。但不开，城外的哭声与哀嚎日夜不绝，连城墙上的守军都听不下去。',
+ choices:[
+  {label:'收编入伍', desc:'将流民中的青壮编入京营', effs:[{t:'r',k:'military',d:30},{t:'r',k:'supplies',d:-20},{t:'r',k:'support',d:5}], bf:'城门口设了募兵点。流民中的青壮争先恐后地报名——当兵虽然危险，但至少有饭吃。'},
+  {label:'设粥厂城外', desc:'在城门外设粥厂赈济', effs:[{t:'r',k:'supplies',d:-30},{t:'r',k:'support',d:8}], bf:'粥棚在城门外搭起。流民排着队，每人一碗稀粥。至少他们还活着——而活着，就是希望。'},
+  {label:'驱离城外', desc:'令兵马司驱散流民', effs:[{t:'r',k:'support',d:-15},{t:'r',k:'prestige',d:-8}], bf:'兵马司出动，用长矛和皮鞭将流民驱离。哭喊声震天。他们去了哪里？没人知道。'}
+ ]},
+{id:'merchant_strike', title:'商贾罢市',
+ cond:function(s){return G.turnCount>=11},
+ text:'京师米布盐三大行会的会首联名上书：因战乱和通货膨胀，商铺无法经营，即日起全城罢市。崇祯帝看着这份近乎威胁的上书，沉默了。这些商人掌握着京城日用品的命脉——他们罢市，京城百姓连盐都买不到。但若向商人低头——天子的威严将置于何地？',
+ choices:[
+  {label:'协商减免', desc:'召见会首协商减免商税', effs:[{t:'r',k:'treasury',d:-15},{t:'r',k:'support',d:8}], bf:'天子在乾清宫召见了三大行会的会首。减免商税的条件谈妥后，京师的店铺陆续打开了门板。'},
+  {label:'设立官市', desc:'朝廷直接开设官营商铺', effs:[{t:'r',k:'treasury',d:-30},{t:'r',k:'support',d:12}], bf:'官营米铺和盐铺在城中各处开张，价格比私营低了近一半。百姓排着长队。'},
+  {label:'强行开市', desc:'令兵马司强制商铺开门', effs:[{t:'r',k:'support',d:-5},{t:'r',k:'prestige',d:-3}], bf:'兵马司一家家敲开商铺的门。商人们被迫开张，但货物少得可怜，价格高得离谱。'}
+ ]},
+{id:'canal_cut', title:'漕运断绝',
+ cond:function(s){return G.turnCount>=14},
+ text:'南京来的最后一批漕船在徐州被闯军截获——三百艘船，二十万石粮，尽数落入敌手。押运官自杀殉职。漕运总督的遗书和塘报一起被快马送到京师："漕运已断，江南之粟再无一粒可入京师。"北京，这座两百年来靠运河维生的帝王都，终于被掐断了生命线。',
+ choices:[
+  {label:'开辟海运', desc:'令沿海卫所组织海运从天津上岸', effs:[{t:'r',k:'treasury',d:-20},{t:'r',k:'supplies',d:25}], bf:'被遗忘多年的海运线路重新启用。船队从宁波出发，沿着海岸线北上。粮食终于再一次抵达了北方。'},
+  {label:'南粮陆运', desc:'组织骡马大队从陆路转运', effs:[{t:'r',k:'supplies',d:15},{t:'r',k:'military',d:-10}], bf:'数以千计的骡马从山东出发。到达北京的粮食十成去了三成——其余的都消耗在了路上。'},
+  {label:'就地征粮', desc:'在京畿及山东就地征粮', effs:[{t:'r',k:'supplies',d:20},{t:'r',k:'support',d:-15}], bf:'征粮队在京畿各州县挨家挨户搜刮粮食。百姓敢怒不敢言。每一粒征来的粮食上，都沾着农人的泪。'}
+ ]},
+{id:'empress_night_advice', title:'周皇后夜谏',
+ cond:function(s){return G.turnCount>=3},
+ text:'子时已过，崇祯帝仍在批阅奏章。周皇后亲手端着一碗莲子羹走进御书房——这是她第三次遣人请陛下用膳，前两次都被驳了回来。她将碗轻轻放在案头，在陛下身旁跪下，"臣妾知道不该干政。但臣妾日夜忧心——陛下若累垮了，大明的天就塌了。"她顿了顿，"南迁之议，还请陛下再思。"说完这句，眼眶已经红了。',
+ choices:[
+  {label:'执手相慰', desc:'握住皇后的手感谢她的关心', effs:[{t:'l',k:'empress_zhou',d:8},{t:'r',k:'support',d:3}], bf:'崇祯帝放下朱笔，握住了皇后的手。那一瞬间，他不是天子，只是一个疲惫的丈夫。'},
+  {label:'采纳南迁', desc:'被皇后说服开始认真考虑南迁', effs:[{t:'v',k:'south_prep',d:1},{t:'l',k:'empress_zhou',d:10}], bf:'崇祯帝沉默了很久，终于点了点头。周皇后几乎不敢相信——劝了整整一个正月的南迁，终于被陛下认真考虑。'},
+  {label:'以礼相责', desc:'温和地提醒皇后不要越界', effs:[{t:'l',k:'empress_zhou',d:-3},{t:'r',k:'prestige',d:2}], bf:'朕心中有数，你不必忧心。天子的话温和却疏远。周皇后退出御书房时，莲子羹一口未动。'}
+ ]},
+{id:'princess_dagger', title:'长平公主的匕首',
+ cond:function(s){return G.turnCount>=5},
+ text:'王承恩偶然发现长平公主朱媺娖的袖中藏着一把匕首——不是闺阁中那种装饰性的小刀，而是一把真正开过刃的短匕，刀柄上还缠着防滑的细麻绳。王承恩没有声张，悄悄禀告了崇祯帝。"公主殿下近来每日习剑，还在绣楼中做了许多奇怪的准备。"',
+ choices:[
+  {label:'召女谈话', desc:'亲自询问女儿表达关爱与担忧', effs:[{t:'l',k:'princess_cp',d:8},{t:'r',k:'support',d:2}], bf:'崇祯帝将女儿召到面前。朕知道你在准备什么。长平公主从袖中取出匕首，放在案上：父皇，儿臣不怕死。但儿臣不想死——儿臣想活着，陪父皇一起活着。'},
+  {label:'默许鼓励', desc:'默许公主的行为暗中为之欣慰', effs:[{t:'l',k:'princess_cp',d:5},{t:'v',k:'princess_armed',d:1}], bf:'崇祯帝什么也没说。他只是让人在公主的绣楼里多放了一些伤药和绷带——无声的关怀。'},
+  {label:'没收匕首', desc:'令人取走匕首禁止公主习武', effs:[{t:'l',k:'princess_cp',d:-8},{t:'r',k:'prestige',d:-2}], bf:'匕首被取走了。但第二天，长平公主的袖中又出现了另一把——这一次，藏得更深。'}
+ ]},
+{id:'wang_farewell', title:'王承恩的诀别',
+ cond:function(s){return G.turnCount>=14},
+ text:'夜已深沉。王承恩跪在乾清宫的御案前，将一个包好的小匣子双手呈上。"陛下，这是老奴十七年来所记的全部——朝中秘事、人物底细、东厂密报的抄本。若他日陛下用得着，便看一看；若用不着……便烧了吧。"他的声音平静，但手指在微微颤抖。崇祯帝打开匣子，里面是厚厚一叠文书，字迹工整——这是一个太监十七年的忠诚，写在纸上。',
+ choices:[
+  {label:'收下并感谢', desc:'收下匣子对王承恩表达感谢', effs:[{t:'l',k:'wang_chengen',d:5},{t:'v',k:'wangs_secrets',d:1}], bf:'崇祯帝将匣子放在枕边。朕收下了。但朕要的不是遗物，是你继续在朕身边。王承恩叩头，长跪不起。'},
+  {label:'拒收', desc:'拒绝收下说不需要遗物', effs:[{t:'l',k:'wang_chengen',d:-3},{t:'r',k:'prestige',d:2}], bf:'把它拿走。朕不要遗物——朕要的是你活着。王承恩抱着匣子退出殿外，在台阶上独坐了很久。'}
+ ]},
+{id:'coal_hill_dream', title:'煤山之梦',
+ cond:function(s){return G.turnCount>=10},
+ text:'崇祯帝在乾清宫的暖阁中伏案而眠，做了一个梦。他梦见自己站在煤山上，脚下是燃烧的北京城。远处有一个声音在唤他——"由检，由检。"那是他皇兄天启帝的声音。他回头，却看见了袁崇焕的脸——那张他曾经下令磔杀之人的脸。没有怨怒，只有悲悯。"陛下，煤山上的槐树不高，但足够悬一条腰带。"惊醒时，冷汗湿透了龙袍。',
+ choices:[
+  {label:'祭奠忠臣', desc:'下令秘密祭奠袁崇焕以安冤魂', effs:[{t:'v',k:'atoned_yuan',d:1},{t:'r',k:'support',d:3}], bf:'深夜里，崇祯帝独自在奉先殿的偏殿里为袁崇焕设了一个无名的牌位。没人知道这件事——除了王承恩，和那支快要燃尽的蜡烛。'},
+  {label:'置之不理', desc:'只当是一场噩梦不予理会', effs:[{t:'r',k:'prestige',d:-2}], bf:'崇祯帝用冷水洗了脸，继续批阅奏章。但那个梦——煤山、槐树、袁崇焕的眼神——像一根细刺，扎在心头。'},
+  {label:'加强戒备', desc:'以为是凶兆下令加强宫中防卫', effs:[{t:'r',k:'prestige',d:-3},{t:'m',k:'beijing',d:5}], bf:'锦衣卫增加了巡逻班次。紫禁城的每一个角落都亮起了更多的灯笼——但光明越多，影子也越多。'}
+ ]},
+{id:'loyalist_letter', title:'忠臣遗书',
+ cond:function(s){return G.turnCount>=8},
+ text:'一封来自山西的信躺在了御案上。写信人是三年前在太原城破时殉国的巡抚，信是城破前一日写的，辗转三年才送到京师。信纸已经发黄发脆，上面的字迹却依然有力——"陛下，臣力竭矣。城在臣在，城亡臣亡。但臣心中有一言不吐不快：朝廷猜忌太重，督抚人人自危。若能信人，则天下事尚可为。"读完最后一个字，崇祯帝的手在发抖。',
+ choices:[
+  {label:'反思猜忌', desc:'被信中猜忌太重四字触动', effs:[{t:'l',k:'wu_sangui',d:5},{t:'l',k:'zuo_liangyu',d:3},{t:'r',k:'prestige',d:3}], bf:'崇祯帝将遗书压在枕下，夜夜睡前必读一遍。信人，爱人——四个字像四把钥匙，试图打开他紧锁了十七年的心门。'},
+  {label:'下令表彰', desc:'追封殉国忠臣刊布天下', effs:[{t:'r',k:'prestige',d:5},{t:'r',k:'support',d:8}], bf:'崇祯帝提笔，亲自为这位三年前的忠臣题写谥号。遗书被刊印分发——每一个读到的人，都被字里行间的忠诚所震撼。'},
+  {label:'留中不发', desc:'将遗书留中独自消化', effs:[{t:'r',k:'prestige',d:-2}], bf:'遗书被锁进了御案的暗格。但那一夜，他批阅奏章时格外温和——也许那封信，终究改变了一些什么。'}
+ ]},
+{id:'last_family_dinner', title:'最后的家宴',
+ cond:function(s){return G.turnCount>=15},
+ text:'坤宁宫。周皇后亲自下厨，做了四道家常小菜。太子在東宫读通鉴，被特许不到。长平公主坐在崇祯帝对面，袖中的匕首硌得手腕有些疼。周皇后给陛下夹了一筷菜，什么都没说。长平公主忽然开口："父皇，如果——我是说如果——京城守不住了，你会去哪里？"桌上的气氛骤然凝固。周皇后手中的筷子停在了半空。',
+ choices:[
+  {label:'坚定承诺', desc:'承诺会保护家人无论如何都会活下去', effs:[{t:'l',k:'empress_zhou',d:8},{t:'l',k:'princess_cp',d:8}], bf:'朕向你们保证——不管发生什么，朕都会护你们周全。这不是天子对臣民说的话，这是一个丈夫和父亲对家人的承诺。'},
+  {label:'实话实说', desc:'坦诚告诉家人自己的打算', effs:[{t:'l',k:'empress_zhou',d:5},{t:'l',k:'princess_cp',d:5}], bf:'朕会留在北京。你们——朕会让你们南下。长平公主的眼泪夺眶而出。她在桌下握紧了匕首——不是为了殉国，是为了陪父皇到最后一刻。'},
+  {label:'避而不答', desc:'转移话题不谈此事', effs:[{t:'l',k:'empress_zhou',d:-3},{t:'l',k:'princess_cp',d:-3}], bf:'吃饭吧，菜都凉了。天子避开了女儿的目光。长平公主低下头，默默咀嚼着，嚼出了满嘴的苦涩。'}
+ ]},
+{id:'li_at_gates', title:'李自成兵临城下',
+ cond:function(s){return G.turnCount>=16&&s.regions.beijing.military<50},
+ text:'三月十八。崇祯帝站在午门城楼上，目力所及之处，闯军的营帐像灰色的潮水淹没了京郊的田野。李自成的金顶大帐就扎在距永定门五里之地。探马最后一次回报时，只说了一句——"城外尽是贼旗，不见一亩空地。"城中的老人都记得，上一次北京被大军围困，要追溯到两百年前——瓦剌的也先。但那一次，有于谦。这一次，有谁？',
+ choices:[
+  {label:'亲自督战', desc:'御驾登上城墙亲自指挥防守', effs:[{t:'r',k:'prestige',d:12},{t:'m',k:'beijing',d:25},{t:'r',k:'supplies',d:-20}], bf:'崇祯帝身着戎装，站在永定门的箭楼上。他的出现让城墙上爆发出震天的呼声——万岁！万岁！万岁！'},
+  {label:'弃城突围', desc:'率领精锐从东便门突围南下', effs:[{t:'c',k:'beijing',v:'顺'},{t:'r',k:'prestige',d:-20},{t:'v',k:'emperor_fled',d:1}], bf:'夜色中，一队人马悄悄出了东便门。崇祯帝在马上回望紫禁城的轮廓——那座他生活了十七年的皇城，在黑暗中像一头沉睡的巨兽。'},
+  {label:'求和谈判', desc:'派人出城与李自成谈判', effs:[{t:'r',k:'prestige',d:-25},{t:'v',k:'li_negotiation',d:1}], bf:'一队打着白旗的使者出城去了闯营。城墙上，守军们面面相觑——他们不明白，天子为什么要向叛贼低头。'}
+ ]},
+{id:'wu_choice', title:'吴三桂的选择',
+ cond:function(s){return G.turnCount>=15&&s.regions.shanhaiguan.military>20},
+ text:'山海关。吴三桂收到了两封信。一封来自京师——崇祯帝御笔："关宁军火速勤王，社稷存亡，在此一举。"另一封来自多尔衮——"将军若肯开关，大清愿以王爵相待。"两封信并排摆在案上。吴三桂的幕僚们分列两旁，主战派和主和派各执一词。吴三桂闭上眼睛——这一刻的决定，将改写三个政权的命运。',
+ choices:[
+  {label:'星夜勤王', desc:'放弃山海关全速回援京师', effs:[{t:'c',k:'shanhaiguan',v:'清'},{t:'m',k:'beijing',d:35},{t:'l',k:'wu_sangui',d:10}], bf:'吴三桂烧掉了多尔衮的信，带着关宁铁骑星夜南下。身后，山海关的关门虚掩——八旗铁骑很快就会发现这座无人防守的天下第一关。'},
+  {label:'开关迎清', desc:'默许吴三桂与多尔衮合作', effs:[{t:'c',k:'shanhaiguan',v:'清'},{t:'v',k:'qing_invasion',d:3},{t:'r',k:'prestige',d:-30}], bf:'山海关的大门向清军敞开。多尔衮骑在马上，看着这座传说中的雄关，嘴角微扬。他等这一刻，等了整整十年。'},
+  {label:'按兵不动', desc:'让吴三桂自行决断', effs:[{t:'v',k:'wu_decides_alone',d:1},{t:'r',k:'prestige',d:-5}], bf:'京师没有新的命令送到山海关。吴三桂独自坐在案前，看着两封信。蜡烛燃尽了一根又一根，他仍在犹豫。'}
+ ]},
+{id:'palace_coup', title:'宫门之变',
+ cond:function(s){return(s.vars.rebellion_risk||0)>2&&G.turnCount>=14},
+ text:'三月十六，夜。紫禁城的玄武门突然被一支不知哪来的兵士撞开。为首的是几个京营下级军官——他们的理由很简单：天子不发饷，他们就自己去抢内库。混乱中，乾清宫前的侍卫与叛军交上了手，刀剑碰撞的火花在夜色中明灭。曹化淳的东厂番子不知去向——也许他们已经逃了，也许他们就是内应。',
+ choices:[
+  {label:'妥协发银', desc:'紧急取内库银发饷平息兵变', effs:[{t:'r',k:'treasury',d:-50},{t:'r',k:'support',d:-5}], bf:'内库被打开，银子如流水般洒向哗变的兵士。叛乱平息了，但天子颜面扫地。'},
+  {label:'镇压叛军', desc:'令锦衣卫和卫戍部队全力镇压', effs:[{t:'r',k:'military',d:-20},{t:'r',k:'prestige',d:-10}], bf:'锦衣卫与叛军在宫中巷战。天亮时，叛军被镇压了，但紫禁城的御道上，多了一片洗不去的暗红。'},
+  {label:'从密道出逃', desc:'通过宫中密道暂避等待局势稳定', effs:[{t:'v',k:'palace_coup_escaped',d:1},{t:'r',k:'prestige',d:-15}], bf:'崇祯帝在密道中听着头顶传来的喊杀声，握紧了王承恩的手。两人在黑暗中屏息等待。'}
+ ]},
+{id:'coal_hill_moment', title:'煤山时刻',
+ cond:function(s){return G.turnCount>=18&&s.regions.beijing.military<20&&(s.vars.li_advances||0)>2},
+ text:'三月十九。黎明的第一缕光照在煤山上。崇祯帝站在万岁山寿皇亭旁，身边只有王承恩一人。远处的紫禁城已经冒起了黑烟——闯军已攻入了皇城。永定门、正阳门、承天门——一道道城门沦陷的塘报已经无人传递。风从山下吹来，带来了焚烧宫殿的焦味和远方百姓的哭声。崇祯帝解下了腰间的玉带。',
+ choices:[
+  {label:'以身殉国', desc:'自缢煤山与大明共存亡', effs:[{t:'v',k:'emperor_dead',d:1}], confirm:'这是不可逆转的终局选择。确定要走向历史中那个注定的结局吗？', bf:'龙袍飘落在槐树枝头。王承恩跪在一旁，泣不成声。十七年的陪伴，以这种方式画上了句号。'},
+  {label:'血战到底', desc:'带着死士杀回紫禁城', effs:[{t:'r',k:'prestige',d:20},{t:'r',k:'military',d:-30},{t:'v',k:'emperor_fights',d:1}], bf:'崇祯帝拔出佩剑，带着几十名死士冲下了煤山，冲向了燃烧的紫禁城。他们的身影，在历史的底片上留下了最深的印痕。'},
+  {label:'隐姓埋名', desc:'脱下龙袍换上布衣混入难民', effs:[{t:'v',k:'emperor_hides',d:1},{t:'r',k:'prestige',d:-50}], bf:'龙袍被埋在煤山的一棵树下。崇祯帝换上了一件破旧的布衣，跟着逃难的人群向南走去。没有人认出他。'}
+ ]},
+{id:'south_crossing', title:'南渡与否',
+ cond:function(s){return s.policiesUsed&&s.policiesUsed['south_move']&&G.turnCount>=12},
+ text:'一切准备就绪。南迁的船队已在通州码头待命——三百艘漕船，足以运走六部的文书档案和太庙的神主牌位。但上船，就意味着承认北京已不可守；不上船，就意味着与京师共存亡。周皇后已经带着太子和长平公主登上了第一艘船。崇祯帝站在码头上，回头望了一眼远方的北京城墙。',
+ choices:[
+  {label:'登船南渡', desc:'下令船队出发南迁南京', effs:[{t:'c',k:'beijing',v:'顺'},{t:'r',k:'prestige',d:-15},{t:'v',k:'south_succeeded',d:1}], bf:'船队缓缓驶离码头。崇祯帝站在船尾，望着渐渐远去的北京城楼。两百七十六年的帝都，在视野中一点点缩小。'},
+  {label:'分路而行', desc:'皇后太子先走自己率军断后', effs:[{t:'l',k:'empress_zhou',d:-5},{t:'m',k:'beijing',d:10},{t:'v',k:'family_split',d:1}], bf:'周皇后的船先开了。她站在船头，望着码头上越来越小的那个身影——那是她的丈夫，大明的天子，选择留在最危险的地方。'},
+  {label:'放弃南迁', desc:'烧毁船只表明与京师共存亡', effs:[{t:'r',k:'prestige',d:15},{t:'m',k:'beijing',d:15},{t:'r',k:'supplies',d:-20}], bf:'火把扔上了船。三百艘漕船在通州码头烧成了一条火龙。天子烧掉了自己的退路，剩下的只有血战到底。'}
+ ]}
+];
+
+// ============ GAME LOGIC ============
+function getAvailableEvents(){
+  var s=G.state, avail=[];
+  for(var i=0;i<ALL_EVENTS.length;i++){
+    var ev=ALL_EVENTS[i];
+    if(ev.once&&s.triggered[ev.id])continue;
+    if(!ev.cond||ev.cond(s))avail.push(ev);
+  }
+  return avail;
+}
+
+function executeChoice(ev, ch){
+  var s=G.state;
+  // 保存变动前数值
+  G._prevStats = {treasury:s.resources.treasury,supplies:s.resources.supplies,military:s.resources.military,support:s.resources.support,prestige:s.resources.prestige};
+  var all=[];
+  for(var i=0;i<ch.effs.length;i++){ var e=ch.effs[i]; applyEffect(e,s); all.push(e) }
+  var bf=propagate(all,s);
+  if(ev.once)s.triggered[ev.id]=true;
+  G.decisionLog.push({turn:G.turnCount, date:dateStr(), event:ev.title, choice:ch.label});
+  G.activeEventId=null;
+  renderAll();
+  showButterfly(ev.title, ch.label, bf);
+}
+
+function runResolution(){
+  var s=G.state, all=[];
+  if(s.resources.supplies<50)all.push({t:'r',k:'support',d:-5});
+  if(s.resources.treasury<50)all.push({t:'r',k:'prestige',d:-3});
+  for(var rid in s.regions){ if(s.regions[rid].control==='顺')all.push({t:'r',k:'support',d:-1}) }
+  if(s.vars.li_advances>0)all.push({t:'r',k:'military',d:-s.vars.li_advances*5});
+  if(s.vars.rebellion_risk>0)all.push({t:'r',k:'supplies',d:-s.vars.rebellion_risk*10});
+  for(var j=0;j<all.length;j++)applyEffect(all[j],s);
+  propagate(all,s);
+  s.turnHistory.push({turn:G.turnCount, date:dateStr()});
+}
+
+function checkEndings(){
+  var s=G.state, r=s.resources, b=s.regions.beijing;
+  if(b.military<30&&(s.vars.li_advances||0)>1)return showEnding('meishan');
+  if(s.policiesUsed&&s.policiesUsed['south_move']&&r.military>60&&b.military>40)return showEnding('nanming');
+  if(b.military>80&&r.support>50&&G.turnCount>=18)return showEnding('save');
+  if((s.vars.wu_defect_risk||0)>0&&(s.vars.qing_threat||0)>70)return showEnding('qing_enter');
+  if(r.treasury>60&&r.supplies>60&&r.military>60&&r.support>60&&r.prestige>60)return showEnding('zhongxing');
+  if(G.turnCount>=20)return showEnding('survive');
+}
+
+// ============ START / LOAD ============
+function startNewGame(){
+  G.state = createState();
+  G.turnCount = 1; G.decisionLog = []; G.activeEventId = null; G.activeCharId = null; G.dragType = null;
+  document.getElementById('title-screen').classList.add('hidden');
+  document.getElementById('game-screen').classList.add('visible');
+  document.getElementById('ending-screen').classList.remove('visible');
+  renderAll();
+  setTimeout(function(){ showTutorial() }, 500);
+}
+
+function loadGame(){
+  try{
+    var raw = localStorage.getItem('ming_butterfly_save');
+    if(!raw){ alert('没有找到存档'); return }
+    var data = JSON.parse(raw);
+    G.state = data.state; G.turnCount = data.turnCount||1; G.decisionLog = data.decisionLog||[];
+    G.state.triggered = G.state.triggered || {}; G.state.policiesUsed = G.state.policiesUsed || {};
+    G.activeEventId = null; G.activeCharId = null;
+    document.getElementById('title-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.add('visible');
+    document.getElementById('ending-screen').classList.remove('visible');
+    renderAll();
+  }catch(e){ alert('存档损坏，无法读取') }
+}
+
+function returnToTitle(){
+  G.state = null;
+  document.getElementById('title-screen').classList.remove('hidden');
+  document.getElementById('game-screen').classList.remove('visible');
+  document.getElementById('ending-screen').classList.remove('visible');
+  document.getElementById('butterfly-modal').classList.remove('visible');
+  document.getElementById('confirm-dialog').classList.remove('visible');
+}
+
+function saveGame(){
+  if(!G.state)return;
+  var data = {state:G.state, turnCount:G.turnCount, decisionLog:G.decisionLog, saved:true};
+  localStorage.setItem('ming_butterfly_save', JSON.stringify(data));
+  showToast('存档已保存');
+}
+
+// ============ PHASE ============
+function advancePhase(){
+  var s=G.state; if(!s)return;
+  if(s.phase==='morning'){ s.phase='admin' }
+  else if(s.phase==='admin'){ s.phase='resolve'; runResolution(); if(s.ending)return }
+  else if(s.phase==='resolve'){ s.phase='morning'; advanceDate(); if(s.ending)return }
+  G.activeEventId=null; G.activeCharId=null;
+  renderAll();
+}
+
+// ============ RESOURCE ALLOCATION ============
+var ALLOC_PCT = 50; // 默认调配比例
+function setAllocPct(pct){ ALLOC_PCT=pct; document.getElementById('alloc-pct-label').textContent=pct+'%'; }
+
+function allocResource(type, amount, regionId){
+  var s=G.state, r=s.regions[regionId]; if(!r)return;
+  if(type==='treasury'){ var a=Math.min(amount,s.resources.treasury); s.resources.treasury-=a; r.supplies+=a; floatText(regionId,'+'+a+' 银','pos') }
+  else if(type==='supplies'){ var a=Math.min(amount,s.resources.supplies); s.resources.supplies-=a; r.supplies+=a; floatText(regionId,'+'+a+' 粮','pos') }
+  else if(type==='military'){ var a=Math.min(amount,Math.floor(s.resources.military*0.3)); s.resources.military-=a; r.military+=a; floatText(regionId,'+'+a+' 兵','pos') }
+  renderAll();
+}
+
+function floatText(regionId, text, cls){
+  var r=G.state.regions[regionId]; if(!r)return;
+  var mp=document.getElementById('map-panel'), mr=mp.getBoundingClientRect();
+  var sv=document.getElementById('map-svg'), sr=sv.getBoundingClientRect();
+  var sx=sr.width/900, sy=sr.height/550;
+  var el=document.createElement('div'); el.className='float-num '+cls; el.textContent=text;
+  el.style.left=(mr.left+r.x*sx)+'px'; el.style.top=(mr.top+r.y*sy)+'px';
+  document.body.appendChild(el); setTimeout(function(){el.remove()},1100);
+}
+
+// ============ CONFIRM ============
+function confirmAction(text, cb){
+  G.confirmCb = cb;
+  document.getElementById('confirm-text').textContent = text;
+  document.getElementById('confirm-dialog').classList.add('visible');
+}
+
+// ============ BUTTERFLY MODAL ============
+function showButterfly(title, choice, bf){
+  var s=G.state, r=s.resources;
+  var h='<h3>🦋 蝴蝶效应</h3>';
+  h+='<div style="text-align:center;color:#8B7355;font-size:11px;margin-bottom:8px">'+title+' → '+choice+'</div>';
+  // 数值变动摘要
+  h+='<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;padding:8px;background:rgba(30,18,8,0.4);border-radius:3px">';
+  var names={treasury:'国库',supplies:'粮草',military:'兵力',support:'民心',prestige:'威望'};
+  for(var k in names){
+    var prev=G._prevStats?G._prevStats[k]:r[k];
+    var cur=r[k], diff=cur-prev;
+    if(diff!==0)h+='<span style="font-size:11px;color:'+(diff>0?'#4CAF50':'#f44336')+'">'+names[k]+' '+(diff>0?'+':'')+diff+'</span>';
+  }
+  h+='</div>';
+  // 蝴蝶效应链
+  var lvls=['直接结果','连锁反应','深远影响','进一步震荡','涟漪扩散','余波'];
+  for(var i=0;i<bf.waves.length;i++){
+    var w=bf.waves[i];
+    h+='<div class="bf-wave"><div class="lev">🜁 '+lvls[w.level-1]+'</div>';
+    for(var k=0;k<(w.nars||[]).length;k++){ var n=w.nars[k]; if(n)h+='<div class="desc">'+n+'</div>' }
+    h+='</div>';
+  }
+  if(bf.diss)h+='<div class="diss">🕸 蝴蝶效应消散于历史洪流之中</div>';
+  h+='<button onclick="closeButterfly()">领旨</button>';
+  document.getElementById('bf-box').innerHTML=h;
+  document.getElementById('butterfly-modal').classList.add('visible');
+}
+function closeButterfly(){
+  document.getElementById('butterfly-modal').classList.remove('visible');
+  if(G.state&&G.state.phase==='morning')renderEvents();
+}
+
+function showToast(msg){
+  var el=document.createElement('div');
+  el.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:500;padding:8px 20px;background:rgba(10,4,2,0.95);border:1px solid #DAA520;border-radius:3px;color:#f0e6d2;font-size:12px;letter-spacing:2px;animation:fadeIn 0.3s';
+  el.textContent=msg; document.body.appendChild(el); setTimeout(function(){el.remove()},2000);
+}
+
+// ============ ENDINGS ============
+function showEnding(eid){
+  G.state.ending = true;
+  var endings = {
+    meishan:{title:'煤山殉国',sub:'崇祯十七年三月十九日·历史结局',nar:['三月十九，丑时。紫禁城外，火光映红了半边天。闯军的喊杀声已越过承天门，漫进午门，漫到乾清宫的阶前。秉笔太监王承恩跪在御案之侧，最后一次为陛下研墨。笔锋落下，龙袍上已是三行血书：朕死，无面目见祖宗于地下，去朕冠冕，以发覆面。任贼分裂朕尸，勿伤百姓一人。','天将明未明。煤山之上，万岁山寿皇亭旁，一株歪脖老槐在晨风中瑟瑟。三十四岁的天子解下腰带，投向那低垂的枝桠。王承恩跪在一旁，泪流满面。十七年的君臣相伴，到此终结。陛下先行，臣随后便来。']},
+    nanming:{title:'南明奠基',sub:'王朝南渡·江南续统',nar:['三月十六，龙舟沿运河南下。甲板上，崇祯帝回望北方——京城的方向，天际有一抹说不清是朝霞还是烽火的红色。船队绵延数里，载着六部文卷、太庙神主，以及一个王朝最后的希望。','南京城内，史可法已在江边等了三天三夜。当龙旗终于出现在水天相接之处，这位疲惫的老臣跪倒在地，涕泗横流。陛下，臣等苦等久矣。他的话淹没在江涛声中，却重重地砸在了每个人的心上。','大明的故事并未结束。江南的稻田依然青翠，市舶司的商船已经重新启航。一个新的朝廷在南京建立——虽然北方的山河已失，但半壁江山犹在。历史在这里拐了一个弯，而拐弯的契机，正是你——崇祯帝朱由检——在那最后的春日里，选择活下去。']},
+    save:{title:'力挽狂澜',sub:'守住京师·击退闯军',nar:['三月二十。京师城头，炮声隆隆。红衣大炮的炮弹划过天际，在闯军阵营中炸开一朵朵黑云。李自成在远处的山丘上勒马观望，眉头紧锁。他没想到这座摇摇欲坠的都城，竟能组织起如此顽强的抵抗。','吴三桂的关宁铁骑终于从山海关赶来——虽然晚了，但毕竟没有缺席。他与京中守军内外夹击，闯军阵脚大乱。三日后，李自成下令撤围，率残部西遁。北京城墙上，每一个守军都在欢呼，声浪直冲云霄。','但这仅仅是开始。国库依然空虚，疆土依然支离，北方依然有虎视眈眈的八旗铁骑。然而这一刻，大明的天子站在城楼上，望着退去的敌军，第一次觉得——或许，或许命运并非不可改变。']},
+    survive:{title:'苟延残喘',sub:'勉强固守·国势已衰',nar:['五月已至。京师勉强守住，但代价惨重——国库如洗，军心涣散，百姓面有菜色。李自成虽退，并未覆灭；清军仍在关外虎视。坐在乾清宫冰冷的龙椅上，崇祯帝环顾空荡荡的大殿，连蜡烛都舍不得多点。','这不是胜利，只是暂免于灭亡。一条王朝的船，暂时堵住了最凶险的一个漏洞，但船底的裂缝仍在渗水，桅杆已折，罗盘已失。还能撑多久？没有人知道答案。包括御座上的天子本人。']},
+    qing_enter:{title:'开关迎虏',sub:'山海关洞开·明清易代',nar:['四月二十二。山海关。吴三桂站在城楼上，望着关外八旗军的营帐连绵如雪。他的手里捏着多尔衮三日前的回信——太平王愿与将军共分天下。他知道这是一句谎言，但他已经没有选择。','关门洞开。八旗铁骑如潮水般涌入中原大地。多尔衮骑在马上，经过城门时甚至没有抬头看吴三桂一眼。对他而言，这座天下第一关只是一个入口。蝴蝶效应的最后一环：为平定内乱而引外敌入关，结果内外俱失。']},
+    zhongxing:{title:'中兴之梦',sub:'重振朝纲·盛世再临',nar:['五月初五，端午节。京师百姓在护城河边放河灯——不是为了纪念屈原，而是为了庆祝闯军败退、京城得保。河灯星星点点，映着修复中的城墙，宛如天上繁星落在了人间。','这或许只是一个短暂的春天。蛰伏的李自成、虎视的多尔衮、腐败的官僚体系——这些都还在。但至少在这一刻，蝴蝶的翅膀扇动出了好的方向。大明没有在崇祯十七年灭亡，而是在废墟中长出了新的芽。历史将记住：在最黑暗的年代，有人没有放弃。']}
+  };
+  var end=endings[eid];
+  var h='<h2>'+end.title+'</h2><div class="sub">'+end.sub+'</div>';
+  for(var i=0;i<end.nar.length;i++)h+='<div class="nar">'+end.nar[i]+'</div>';
+  var r=G.state.resources;
+  h+='<div class="final-stats">';
+  h+='<span>💰国库:'+r.treasury+'</span> <span>🌾粮草:'+r.supplies+'</span> <span>⚔兵力:'+r.military+'</span> <span>♥民心:'+r.support+'</span> <span>👑威望:'+r.prestige+'</span>';
+  h+='</div>';
+  h+='<div class="history">';
+  for(var j=Math.max(0,G.decisionLog.length-10);j<G.decisionLog.length;j++){ var d=G.decisionLog[j]; h+='第'+d.turn+'回合·'+d.date+' '+d.event+' → '+d.choice+'<br>' }
+  h+='</div>';
+  h+='<button onclick="returnToTitle()">重新开始</button>';
+  document.getElementById('end-box').innerHTML=h;
+  document.getElementById('ending-screen').classList.add('visible');
+  document.getElementById('game-screen').classList.remove('visible');
+}
+
+// ============ RENDERING ============
+function renderAll(){
+  if(!G.state)return;
+  renderHeader(); renderStats(); renderMap(); renderEvents(); renderChars(); renderResources(); renderPolicies();
+}
+
+function renderHeader(){
+  var s=G.state;
+  document.getElementById('hdr-date').textContent = dateStr() + ' | 第' + G.turnCount + '回合';
+  var ph=document.getElementById('hdr-phase');
+  var names={morning:'早朝 - 处理奏章',admin:'施政 - 分配资源与国策',resolve:'结算 - 蝴蝶效应显现'};
+  ph.textContent=names[s.phase]; ph.className='phase-tag '+s.phase;
+  var next={morning:'进入施政 →',admin:'结算本回合 →',resolve:'下一回合 →'};
+  document.getElementById('btn-advance').textContent=next[s.phase];
+}
+
+function renderStats(){
+  var s=G.state, r=s.resources;
+  var keys=['treasury','supplies','military','support','prestige'];
+  var maxes=[1000,1000,1000,100,100];
+  for(var i=0;i<keys.length;i++){
+    var k=keys[i], el=document.getElementById('val-'+k), prev=G._prevStats?G._prevStats[k]:null;
+    el.textContent=r[k];
+    document.getElementById('bar-'+k).style.width=(r[k]/maxes[i]*100)+'%';
+    if(prev!==null&&r[k]!==prev){
+      el.classList.remove('changed-up','changed-down');
+      el.classList.add(r[k]>prev?'changed-up':'changed-down');
+      setTimeout(function(el){el.classList.remove('changed-up','changed-down')},900,el);
+    }
+  }
+}
+
+function renderMap(){
+  var svg=document.getElementById('map-svg'), s=G.state; if(!s)return;
+  var h='<defs>';
+  h+='<radialGradient id="parch"><stop offset="0%" stop-color="#2a1a0a"/><stop offset="100%" stop-color="#0d0804"/></radialGradient>';
+  h+='<filter id="g1"><feGaussianBlur stdDeviation="3"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+  h+='<filter id="g2"><feGaussianBlur stdDeviation="5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+  h+='<linearGradient id="rivG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a3a50"/><stop offset="50%" stop-color="#3a7090"/><stop offset="100%" stop-color="#1a3a50"/></linearGradient>';
+  h+='</defs>';
+  h+='<rect width="900" height="550" fill="url(#parch)"/>';
+  // 地形纹理 - 山丘
+  var hills=[[165,65],[215,58],[270,68],[310,52],[355,61],[695,35],[745,30],[795,38],[160,175],[205,180],[410,105],[435,108],[130,320],[175,330],[700,290],[740,280]];
+  for(var hi=0;hi<hills.length;hi++)h+='<text x="'+hills[hi][0]+'" y="'+hills[hi][1]+'" font-size="14" fill="#3a2a1a" opacity="0.22">▲</text>';
+  // 森林标记
+  var forests=[[250,170],[280,165],[310,175],[500,140],[530,148],[560,135],[650,200],[670,195],[420,280],[450,290],[600,250],[620,245]];
+  for(var fi=0;fi<forests.length;fi++)h+='<text x="'+forests[fi][0]+'" y="'+forests[fi][1]+'" font-size="9" fill="#1a3a1a" opacity="0.18">♣</text>';
+  // 长城
+  h+='<polyline points="130,158 360,138 485,110 630,88 765,62 810,54" fill="none" stroke="#6B4226" stroke-width="3" stroke-linejoin="round" opacity="0.55"/>';
+  h+='<polyline points="130,158 360,138 485,110 630,88 765,62 810,54" fill="none" stroke="#C41E3A" stroke-width="1" stroke-dasharray="5,4" opacity="0.35"/>';
+  h+='<rect x="770" y="43" width="28" height="14" rx="2" fill="rgba(0,0,0,0.5)"/><text x="784" y="53" text-anchor="middle" font-size="7" fill="#8B6914" font-weight="700">长城</text>';
+  // 黄河
+  h+='<path d="M 150,278 Q 330,238 470,282 Q 610,318 710,268 Q 770,244 830,220" fill="none" stroke="url(#rivG)" stroke-width="5" opacity="0.4"/>';
+  h+='<rect x="155" y="264" width="22" height="12" rx="2" fill="rgba(0,0,0,0.5)"/><text x="166" y="273" text-anchor="middle" font-size="6" fill="#8B6914" font-weight="700">黄河</text>';
+  // 长江
+  h+='<path d="M 90,412 Q 280,380 440,382 Q 620,368 760,343 Q 840,327 890,312" fill="none" stroke="url(#rivG)" stroke-width="6" opacity="0.45"/>';
+  h+='<rect x="90" y="398" width="22" height="12" rx="2" fill="rgba(0,0,0,0.5)"/><text x="101" y="407" text-anchor="middle" font-size="6" fill="#4A80B0" font-weight="700">长江</text>';
+  // 势力标签
+  h+='<text x="620" y="25" text-anchor="middle" font-size="13" font-weight="900" fill="#C41E3A" opacity="0.7" letter-spacing="4">大 明</text>';
+  h+='<text x="310" y="195" text-anchor="middle" font-size="11" font-weight="700" fill="#F9A825" opacity="0.6" letter-spacing="2">大顺</text>';
+  h+='<text x="800" y="25" text-anchor="middle" font-size="9" font-weight="700" fill="#42A5F5" opacity="0.5" letter-spacing="2">大清</text>';
+  // 次要地点
+  var minors=[
+    {name:'居庸关',x:590,y:78},{name:'紫荆关',x:520,y:95},{name:'娘子关',x:460,y:140},
+    {name:'潼关',x:360,y:210},{name:'武关',x:400,y:250},{name:'山海关',x:740,y:70},
+    {name:'雁门关',x:410,y:115},{name:'宁远',x:780,y:55},{name:'锦州',x:810,y:40},
+    {name:'济南',x:600,y:200},{name:'洛阳',x:460,y:240},{name:'襄阳',x:430,y:310},
+    {name:'荆州',x:400,y:340},{name:'九江',x:530,y:350},{name:'苏州',x:740,y:360},
+    {name:'杭州',x:700,y:390},{name:'福州',x:680,y:430},{name:'广州',x:520,y:460},
+    {name:'成都',x:250,y:310},{name:'重庆',x:310,y:340},{name:'昆明',x:200,y:410},
+    {name:'兰州',x:220,y:200},{name:'宁夏',x:260,y:160},{name:'太原',x:400,y:170},
+    {name:'武昌',x:460,y:370},{name:'南昌',x:530,y:400},{name:'长沙',x:430,y:430},
+    {name:'贵阳',x:330,y:420},{name:'桂林',x:380,y:470}
+  ];
+  for(var mi=0;mi<minors.length;mi++){
+    var mn=minors[mi];
+    h+='<circle cx="'+mn.x+'" cy="'+mn.y+'" r="3" fill="#8B7355" opacity="0.5"/>';
+    if(mn.name==='山海关')continue; // 山海关已作为主城显示
+    h+='<text x="'+mn.x+'" y="'+(mn.y-3)+'" text-anchor="middle" font-size="6" fill="rgba(139,115,85,0.5)">'+mn.name+'</text>';
+  }
+  var mingPolys=[
+    '620,60 680,50 720,60 740,80 720,100 660,110 620,105 580,100 560,80 570,65',  // 京师圈
+    '700,55 770,45 820,52 830,70 800,80 760,70',  // 山海关-辽东
+    '510,70 560,60 580,75 560,95 520,95 500,80',  // 宣府
+    '400,95 460,90 470,110 440,120 400,120 380,108',  // 大同
+    '600,350 680,340 710,360 700,390 640,400 610,380',  // 南京
+    '620,300 660,290 690,310 680,340 630,345 610,320',  // 南京北
+    '440,350 480,340 500,360 490,390 440,400 420,380',  // 武昌
+    '700,310 750,300 760,330 740,350 710,340',  // 扬州
+  ];
+  var shunPolys=[
+    '280,205 340,195 350,230 320,250 280,240 260,220',  // 西安
+    '470,240 520,235 530,260 500,280 460,270 450,250',  // 开封
+  ];
+  for(var mp=0;mp<mingPolys.length;mp++){
+    h+='<polygon points="'+mingPolys[mp]+'" fill="rgba(180,20,20,0.06)" stroke="rgba(180,20,20,0.12)" stroke-width="1"/>';
+  }
+  for(var sp=0;sp<shunPolys.length;sp++){
+    h+='<polygon points="'+shunPolys[sp]+'" fill="rgba(200,160,20,0.06)" stroke="rgba(200,160,20,0.12)" stroke-width="1"/>';
+  }
+  // 商路
+  var links=[[620,90,740,70],[620,90,550,80],[620,90,510,260],[740,70,800,45],[550,80,440,110],[510,260,310,230],[510,260,460,370],[460,370,660,380],[660,380,730,340],[660,380,510,260],[440,110,310,230]];
+  for(var li=0;li<links.length;li++)h+='<line x1="'+links[li][0]+'" y1="'+links[li][1]+'" x2="'+links[li][2]+'" y2="'+links[li][3]+'" stroke="rgba(218,165,32,0.12)" stroke-width="1" stroke-dasharray="3,5"/>';
+  // 城市节点
+  var cities=[{id:'beijing',x:620,y:90},{id:'nanjing',x:660,y:380},{id:'xian',x:310,y:230},{id:'shanhaiguan',x:740,y:70},{id:'kaifeng',x:510,y:260},{id:'wuchang',x:460,y:370},{id:'yangzhou',x:730,y:340},{id:'datong',x:440,y:110},{id:'xuanfu',x:550,y:80},{id:'liaodong',x:800,y:45}];
+  for(var ci=0;ci<cities.length;ci++){
+    var cid=cities[ci].id, r=s.regions[cid]; if(!r)continue;
+    var cl=r.control==='明'?'#B71C1C':r.control==='顺'?'#F9A825':'#1565C0';
+    var gl=r.control==='明'?'#E53935':r.control==='顺'?'#FFD600':'#42A5F5';
+    var sz=Math.max(15,Math.min(28,10+r.military/7));
+    var isCap=cid==='beijing'||cid==='nanjing';
+    h+='<g class="map-region" onclick="onMapClick(\''+cid+'\')" onmouseenter="onMapHover(event,\''+cid+'\')" onmouseleave="onMapLeave()">';
+    // 光晕
+    h+='<circle cx="'+r.x+'" cy="'+r.y+'" r="'+(sz+8)+'" fill="'+gl+'" opacity="0.06" filter="url(#g1)"/>';
+    if(isCap)h+='<rect x="'+(r.x-sz-6)+'" y="'+(r.y-sz-6)+'" width="'+(sz*2+12)+'" height="'+(sz*2+12)+'" rx="3" fill="none" stroke="'+gl+'" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="4,3"/>';
+    // 城池
+    h+='<rect x="'+(r.x-sz*0.65)+'" y="'+(r.y-sz*0.65)+'" width="'+(sz*1.3)+'" height="'+(sz*1.3)+'" rx="3" fill="'+cl+'" fill-opacity="0.3" stroke="'+cl+'" stroke-width="1.5"/>';
+    h+='<rect x="'+(r.x-sz*0.35)+'" y="'+(r.y-sz*0.35)+'" width="'+(sz*0.7)+'" height="'+(sz*0.7)+'" rx="2" fill="'+cl+'" fill-opacity="0.7"/>';
+    // 兵力条
+    var bw=sz*1.3, bh=3, by=r.y-sz-6;
+    h+='<rect x="'+(r.x-bw/2)+'" y="'+by+'" width="'+bw+'" height="'+bh+'" rx="1" fill="rgba(0,0,0,0.4)"/>';
+    h+='<rect x="'+(r.x-bw/2)+'" y="'+by+'" width="'+(bw*Math.min(1,r.military/100))+'" height="'+bh+'" rx="1" fill="'+gl+'" opacity="0.7"/>';
+    // 标签
+    var ly=r.y+sz+12;
+    h+='<text x="'+r.x+'" y="'+ly+'" text-anchor="middle" font-size="'+(isCap?12:10)+'" font-weight="700" fill="'+(r.control==='明'?'#e8dcc8':'#DAA520')+'" letter-spacing="1">'+r.name+'</text>';
+    h+='<text x="'+r.x+'" y="'+(ly+12)+'" text-anchor="middle" font-size="8" fill="#8B7355">⚔'+r.military+' 🌾'+r.supplies+'</text>';
+    if(r.control!=='明')h+='<text x="'+r.x+'" y="'+(ly+22)+'" text-anchor="middle" font-size="8" fill="'+cl+'" font-weight="700">['+r.control+']</text>';
+    h+='</g>';
+  }
+  // 李自成进军
+  if(s.vars.li_advances>0){
+    var la=Math.min(1,0.3+s.vars.li_advances*0.12);
+    var lw=2+s.vars.li_advances;
+    h+='<line x1="310" y1="230" x2="620" y2="90" stroke="#F9A825" stroke-width="'+lw+'" stroke-dasharray="6,4" opacity="'+la+'"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.2s" repeatCount="indefinite"/></line>';
+    h+='<text x="460" y="150" text-anchor="middle" font-size="8" fill="#F9A825" font-weight="700" opacity="'+la+'">⚔闯军进军</text>';
+  }
+  if((s.vars.qing_threat||0)>40){
+    h+='<text x="800" y="38" text-anchor="middle" font-size="7" fill="#42A5F5" opacity="0.5">⚠清军</text>';
+  }
+  svg.innerHTML=h;
+  // 恢复缩放/平移状态
+  if(window._mapVB)svg.setAttribute('viewBox',window._mapVB.x+' '+window._mapVB.y+' '+window._mapVB.w+' '+window._mapVB.h);
+}
+
+function onMapClick(rid){
+  var s=G.state; if(s.phase!=='admin')return;
+  if(G.dragType){
+    var el=document.getElementById('token-'+G.dragType);
+    var amt=parseInt(el.textContent)||0;
+    if(amt>0){
+      var allocAmt=Math.floor(amt*ALLOC_PCT/100)||1;
+      allocResource(G.dragType,allocAmt,rid);
+      amt-=allocAmt; el.textContent=Math.max(0,amt);
+      if(amt<=0){
+        // Deselect after allocation
+        el.style.background='rgba(139,0,0,0.4)'; el.style.borderColor='#DAA520'; el.style.boxShadow='';
+        G.dragType=null;
+      }
+    }
+  } else {
+    var r=s.regions[rid], tip=document.getElementById('map-tip');
+    if(!r)return;
+    tip.innerHTML='<div style="color:#DAA520;font-weight:700;font-size:11px">'+r.name+'</div><div style="font-size:10px;color:#c0a080">⚔兵力:'+r.military+' 🌾粮草:'+r.supplies+' 控制:'+r.control+'</div>';
+    tip.style.display='block';
+    setTimeout(function(){tip.style.display='none'},2000);
+  }
+}
+
+function onMapHover(ev, rid){
+  var r=G.state.regions[rid], tip=document.getElementById('map-tip');
+  if(!r)return;
+  tip.innerHTML='<div style="color:#DAA520;font-weight:700;font-size:11px">'+r.name+'</div><div style="font-size:10px;color:#c0a080">⚔兵力:'+r.military+' 🌾粮草:'+r.supplies+' 控制:'+r.control+'</div>';
+  tip.style.left=(ev.clientX+14)+'px'; tip.style.top=(ev.clientY-45)+'px'; tip.style.display='block';
+}
+function onMapLeave(){ document.getElementById('map-tip').style.display='none' }
+
+function renderEvents(){
+  var s=G.state, list=document.getElementById('event-list');
+  if(s.phase!=='morning'){ list.innerHTML='<div style="color:#8B7355;text-align:center;padding:20px;font-size:10px">⏸ 非早朝时段<br>点击下方按钮推进</div>'; return }
+  var avail=getAvailableEvents();
+  if(avail.length===0){ list.innerHTML='<div style="color:#8B7355;text-align:center;padding:20px;font-size:10px">✅ 暂无奏章<br>点击下方按钮推进回合</div>'; return }
+  var h='<div style="font-size:9px;color:#8B7355;text-align:center;margin-bottom:4px">待处理：'+avail.length+'件 | 已处理：'+Object.keys(s.triggered).length+'件</div>';
+  for(var i=0;i<avail.length;i++){
+    var ev=avail[i], sel=G.activeEventId===ev.id;
+    h+='<div class="event-card'+(sel?' selected':'')+'" onclick="onEventClick(\''+ev.id+'\')"><div class="evt-title">'+ev.title+'</div><div class="evt-text">'+ev.text+'</div><div class="evt-choices">';
+    for(var j=0;j<ev.choices.length;j++){
+      var ch=ev.choices[j];
+      h+='<button onclick="event.stopPropagation();onChoiceClick(\''+ev.id+'\','+j+')">【'+ch.label+'】'+ch.desc+'</button>';
+    }
+    h+='</div></div>';
+  }
+  list.innerHTML=h;
+  var log=document.getElementById('event-log');
+  if(G.decisionLog.length>0){
+    var lh='<div style="font-size:9px;color:#8B7355;margin-bottom:3px">📋 决策记录</div>';
+    for(var k=Math.max(0,G.decisionLog.length-6);k<G.decisionLog.length;k++){ var d=G.decisionLog[k]; lh+='<div>['+d.date+'] '+d.event+' → '+d.choice+'</div>' }
+    log.innerHTML=lh;
+  }
+}
+
+function onEventClick(eid){ G.activeEventId=G.activeEventId===eid?null:eid; renderEvents() }
+function onChoiceClick(eid, ci){
+  var ev=null; for(var i=0;i<ALL_EVENTS.length;i++){ if(ALL_EVENTS[i].id===eid){ ev=ALL_EVENTS[i]; break } }
+  if(!ev)return;
+  var ch=ev.choices[ci]; if(!ch)return;
+  if(ch.confirm){ confirmAction(ch.confirm, function(){ executeChoice(ev,ch) }) }
+  else { executeChoice(ev,ch) }
+}
+
+function renderChars(){
+  var s=G.state, list=document.getElementById('char-list'), h='';
+  var colors={wu_sangui:'#C62828',wang_chengen:'#1565C0',empress_zhou:'#AD1457',yuan_shadow:'#2E7D32',li_zicheng:'#F9A825',duoergun:'#0D47A1',zuo_liangyu:'#6A1B9A',chen_yan:'#4E342E',fan_jingwen:'#00695C',cao_huachun:'#37474F',princess_cp:'#E91E63',shi_kefa:'#1B5E20'};
+  var icons={wu_sangui:'🛡',wang_chengen:'📿',empress_zhou:'👑',yuan_shadow:'👻',li_zicheng:'⚔',duoergun:'🏹',zuo_liangyu:'🐴',chen_yan:'🎭',fan_jingwen:'📜',cao_huachun:'🕸',princess_cp:'🌸',shi_kefa:'⚓'};
+  for(var cid in s.characters){
+    var ch=s.characters[cid];
+    if(ch.loyalty<=0&&cid!=='li_zicheng'&&cid!=='duoergun')continue;
+    var lc=ch.loyalty>=70?'#4CAF50':ch.loyalty>=40?'#F9A825':'#f44336';
+    var bg=colors[cid]||'#333';
+    var sel=G.activeCharId===cid;
+    h+='<div class="char-card'+(sel?' selected':'')+'" onclick="onCharClick(\''+cid+'\')" style="display:flex;gap:6px;align-items:flex-start">';
+    // 头像
+    h+='<div style="width:32px;height:32px;border-radius:50%;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;border:2px solid '+(ch.loyalty>=70?'#4CAF50':ch.loyalty>=40?'#F9A825':'#f44336')+'">'+icons[cid]+'</div>';
+    // 信息
+    h+='<div style="flex:1;min-width:0"><div class="cname">'+ch.name+'</div><div class="ctitle">'+ch.title+'</div>';
+    h+='<div style="display:flex;align-items:center;gap:4px;margin-top:2px"><div style="width:40px;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden"><div style="width:'+ch.loyalty+'%;height:100%;background:'+lc+';border-radius:2px;transition:width 0.5s"></div></div><span style="font-size:9px;color:'+lc+';font-weight:700">'+ch.loyalty+'</span></div>';
+    h+='<div class="cdetail" style="margin-top:4px;padding:4px;background:rgba(0,0,0,0.2);border-radius:2px">个性：'+ch.traits+'<br>位置：'+ch.loc+'<br><span style="color:#8B7355;font-style:italic">'+ch.hidden+'</span></div></div>';
+    h+='</div>';
+  }
+  list.innerHTML=h;
+}
+
+function onCharClick(cid){ G.activeCharId=G.activeCharId===cid?null:cid; renderChars() }
+
+function renderResources(){
+  var s=G.state;
+  if(s.phase==='admin'){
+    document.getElementById('token-treasury').textContent=s.resources.treasury;
+    document.getElementById('token-supplies').textContent=s.resources.supplies;
+    document.getElementById('token-military').textContent=Math.floor(s.resources.military*0.3);
+    var tokens=document.querySelectorAll('.drag-token');
+    for(var i=0;i<tokens.length;i++)tokens[i].classList.remove('spent');
+    // Reset drag selection when entering admin
+    G.dragType=null;
+    for(var i=0;i<tokens.length;i++){ tokens[i].style.background='rgba(139,0,0,0.4)'; tokens[i].style.borderColor='#DAA520'; tokens[i].style.boxShadow='' }
+  } else {
+    document.getElementById('token-treasury').textContent='0';
+    document.getElementById('token-supplies').textContent='0';
+    document.getElementById('token-military').textContent='0';
+    var tokens=document.querySelectorAll('.drag-token');
+    for(var i=0;i<tokens.length;i++)tokens[i].classList.add('spent');
+  }
+}
+
+function renderPolicies(){
+  var s=G.state, list=document.getElementById('policy-list'), h='';
+  for(var i=0;i<POLICIES.length;i++){
+    var p=POLICIES[i];
+    var disabled=false;
+    if(p.once&&s.policiesUsed[p.id])disabled=true;
+    var costKey=p.costT==='prestige'?'prestige':p.costT==='support'?'support':p.costT==='treasury'?'treasury':'supplies';
+    if(s.resources[costKey]<p.cost)disabled=true;
+    if(s.phase!=='admin')disabled=true;
+    var cls=(p.once&&s.policiesUsed[p.id])?'used':(disabled?'no':'');
+    h+='<button class="pchip '+cls+'" '+(disabled?'':'onclick="executePolicy(POLICIES['+i+'])"')+' title="'+p.desc+'">'+p.name+'【'+(p.costT==='prestige'?'威':p.costT==='support'?'民':p.costT==='treasury'?'银':'粮')+p.cost+'】</button>';
+  }
+  list.innerHTML=h;
+}
+
+// ============ TUTORIAL ============
+var TUTORIAL_STEPS=[
+  {title:'欢迎，陛下', text:'崇祯十七年二月初一。您是崇祯皇帝，大明正处于风雨飘摇之中。李自成的大军正向北京逼近，关外的清军虎视眈眈。每一个决定都将如蝴蝶振翅，引发不可预知的连锁反应。'},
+  {title:'早朝阶段', text:'每天早上，天下大事会呈报给您。点击事件卡片展开详情，选择应对之策。左侧面板显示所有待处理的奏章，点击选项即可做出决策。每次决策后，弹出"蝴蝶效应"面板——显示您的选择引发的后果。'},
+  {title:'施政阶段', text:'早朝后进入施政阶段。<br><br><b>调配资源：</b>点击下方资源的数字选中它（会高亮），再点击地图上的地区即可分配。每次分配该资源的一半。<br><br><b>国策：</b>点击下方国策按钮实施国家大政。注意：每项国策有资源成本。'},
+  {title:'结算与推进', text:'施政完成后点击"结算本回合"。系统会计算本回合所有决策的蝴蝶效应——资源变动、地区得失、人物忠诚变化。然后日期推进5天，新的事件出现。'},
+  {title:'核心提示', text:'<b>山海关</b>是阻挡清军的关键，务必保持兵力。<br><b>国库与粮草</b>消耗很快，注意补充。<br><b>民心与威望</b>影响全局，不可忽视。<br><b>南京</b>是潜在的退路——南迁国策可保半壁江山。<br><b>每项决策都有隐藏代价</b>，权衡利弊。'}
+];
+
+function showTutorial(){
+  var overlay=document.createElement('div');
+  overlay.id='tutorial-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75)';
+  var step=0;
+  function showStep(){
+    if(step>=TUTORIAL_STEPS.length){ overlay.remove(); return }
+    var s=TUTORIAL_STEPS[step];
+    overlay.innerHTML='<div style="max-width:500px;width:85%;background:rgba(10,4,2,0.97);border:2px solid #DAA520;border-radius:6px;padding:24px;text-align:center;animation:fadeIn 0.3s"><h3 style="color:#DAA520;font-size:20px;margin-bottom:12px;letter-spacing:3px">'+s.title+'</h3><p style="color:#c0a080;font-size:13px;line-height:2;margin-bottom:16px;text-align:left">'+s.text+'</p><div style="color:#8B7355;font-size:11px;margin-bottom:10px">'+(step+1)+'/'+TUTORIAL_STEPS.length+'</div><button onclick="event.stopPropagation()" style="padding:8px 30px;font-family:inherit;font-size:14px;background:rgba(139,0,0,0.5);border:1px solid #DAA520;color:#DAA520;cursor:pointer;border-radius:3px;letter-spacing:2px">'+(step<TUTORIAL_STEPS.length-1?'下一步 →':'朕明白了')+'</button></div>';
+    document.body.appendChild(overlay);
+    overlay.querySelector('button').onclick=function(){ step++; showStep() };
+  }
+  showStep();
+}
+
+// ============ INIT ============
+document.addEventListener('DOMContentLoaded', function(){
+  document.getElementById('confirm-yes').addEventListener('click', function(){
+    document.getElementById('confirm-dialog').classList.remove('visible');
+    if(G.confirmCb){ var cb=G.confirmCb; G.confirmCb=null; cb() }
+  });
+  document.getElementById('confirm-no').addEventListener('click', function(){
+    document.getElementById('confirm-dialog').classList.remove('visible');
+    G.confirmCb=null;
+  });
+
+  // Click-to-select resource tokens (simpler than drag)
+  var tokens=document.querySelectorAll('.drag-token');
+  for(var i=0;i<tokens.length;i++){
+    tokens[i].addEventListener('click', function(e){
+      if(!G.state||G.state.phase!=='admin')return;
+      e.stopPropagation();
+      var type=this.getAttribute('data-type');
+      // Toggle selection
+      if(G.dragType===type){ G.dragType=null; this.style.background='rgba(139,0,0,0.4)'; this.style.borderColor='#DAA520'; }
+      else {
+        // Deselect previous
+        if(G.dragType){ var prev=document.getElementById('token-'+G.dragType); if(prev){prev.style.background='rgba(139,0,0,0.4)';prev.style.borderColor='#DAA520'} }
+        G.dragType=type; this.style.background='rgba(196,30,58,0.8)'; this.style.borderColor='#FFD700'; this.style.boxShadow='0 0 10px rgba(255,215,0,0.5)';
+      }
+    });
+  }
+
+  // Map zoom state - MUST be global for renderMap access
+  window._mapVB={x:0,y:0,w:900,h:550};
+  window._mapZoom=1;
+
+  // Map zoom/pan
+  var svgEl=document.getElementById('map-svg');
+  var mapVB=window._mapVB, mapZoom=window._mapZoom, mapMinZoom=0.5, mapMaxZoom=3;
+  var mapPanning=false, mapPanX=0, mapPanY=0;
+
+  svgEl.addEventListener('wheel',function(e){
+    e.preventDefault();
+    var rect=svgEl.getBoundingClientRect();
+    var mx=(e.clientX-rect.left)/rect.width;
+    var my=(e.clientY-rect.top)/rect.height;
+    var delta=e.deltaY>0?1.15:1/1.15;
+    var newZoom=Math.max(mapMinZoom,Math.min(mapMaxZoom,mapZoom*delta));
+    var vbx=mapVB.x+(mx*mapVB.w)*(1-1/delta);
+    var vby=mapVB.y+(my*mapVB.h)*(1-1/delta);
+    mapVB.x=vbx; mapVB.y=vby;
+    mapVB.w=900/newZoom; mapVB.h=550/newZoom;
+    mapZoom=newZoom;
+    svgEl.setAttribute('viewBox',mapVB.x+' '+mapVB.y+' '+mapVB.w+' '+mapVB.h);
+  },{passive:false});
+
+  svgEl.addEventListener('mousedown',function(e){
+    if(e.button!==0)return;
+    mapPanning=true; mapPanX=e.clientX; mapPanY=e.clientY;
+    svgEl.style.cursor='grabbing';
+  });
+  window.addEventListener('mousemove',function(e){
+    if(!mapPanning)return;
+    var dx=(e.clientX-mapPanX)*(mapVB.w/svgEl.getBoundingClientRect().width);
+    var dy=(e.clientY-mapPanY)*(mapVB.h/svgEl.getBoundingClientRect().height);
+    mapVB.x-=dx; mapVB.y-=dy;
+    svgEl.setAttribute('viewBox',mapVB.x+' '+mapVB.y+' '+mapVB.w+' '+mapVB.h);
+    mapPanX=e.clientX; mapPanY=e.clientY;
+  });
+  window.addEventListener('mouseup',function(){mapPanning=false;svgEl.style.cursor='grab'});
+
+  // 双击重置
+  svgEl.addEventListener('dblclick',function(){
+    mapVB.x=0; mapVB.y=0; mapVB.w=900; mapVB.h=550; mapZoom=1;
+    svgEl.setAttribute('viewBox','0 0 900 550');
+  });
+  var lb=document.getElementById('btn-load');
+  if(lb){
+    var hasSave=false;
+    try{ hasSave=!!localStorage.getItem('ming_butterfly_save') }catch(e){}
+    if(!hasSave){ lb.disabled=true; lb.style.opacity='0.4' }
+  }
+
+  // Keyboard
+  document.addEventListener('keydown', function(e){
+    if(!G.state||G.state.ending)return;
+    if(e.key==='Enter'&&!e.target.closest('button')&&!e.target.closest('input'))advancePhase();
+    if(e.key==='s'&&e.ctrlKey){ e.preventDefault(); saveGame() }
+  });
+
+  // Status
+  document.getElementById('status-msg').textContent = '引擎已就绪';
+
+  console.log('大明：蝴蝶效应 - 引擎就绪');
+});
+
+</script>
+</body>
+</html>
