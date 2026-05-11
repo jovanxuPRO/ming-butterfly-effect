@@ -1010,25 +1010,20 @@ function renderMap(){
 }
 
 function onMapClick(rid){
-  var s=G.state; if(s.phase!=='admin')return;
-  if(G.dragType){
-    var el=document.getElementById('token-'+G.dragType);
-    if(!el)return;
-    var m=el.textContent.match(/\d+/);
-    var amt=m?parseInt(m[0]):0;
-      if(amt>0){
-      var allocAmt=Math.floor(amt*ALLOC_PCT/100)||1;
-      allocResource(G.dragType,allocAmt,rid);
-      amt-=allocAmt; el.textContent=Math.max(0,amt);
-      if(amt<=0){ el.style.background='rgba(139,0,0,0.4)'; el.style.borderColor='#DAA520'; el.style.boxShadow=''; G.dragType=null }
-    }
-  } else {
-    var r=s.regions[rid], tip=document.getElementById('map-tip');
-    if(!r)return;
-    tip.innerHTML='<div style="color:#DAA520;font-weight:700;font-size:11px">'+r.name+'</div><div style="font-size:10px;color:#c0a080">⚔兵力:'+r.military+' 🌾粮草:'+r.supplies+' 控制:'+r.control+'</div>';
-    tip.style.display='block';
-    setTimeout(function(){tip.style.display='none'},2000);
-  }
+  var s=G.state; if(s.phase!=='admin'){ showToast('请在施政阶段分配资源'); return }
+  if(!G.dragType){ showToast('请先点击选中一个资源令牌'); return }
+  var el=document.getElementById('token-'+G.dragType);
+  if(!el)return;
+  var txt=el.textContent, amt=0;
+  var m=txt.match(/(\d+)/); if(m)amt=parseInt(m[1]);
+  if(!amt||amt<=0){ showToast('该资源已耗尽'); return }
+  var allocAmt=Math.floor(amt*ALLOC_PCT/100)||1;
+  allocResource(G.dragType,allocAmt,rid);
+  amt-=allocAmt;
+  var label=G.dragType==='treasury'?'国库 ':G.dragType==='supplies'?'粮草 ':'兵力 ';
+  el.textContent=label+Math.max(0,amt);
+  if(amt<=0){ el.style.background='rgba(139,0,0,0.4)'; el.style.borderColor='#DAA520'; el.style.boxShadow=''; G.dragType=null }
+  renderAll();
 }
 
 function onMapHover(ev, rid){
