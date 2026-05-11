@@ -714,27 +714,6 @@ function runResolution(){
     applyEffect(re.eff,s); showToast(re.text);
   }
 }
-  for(var j=0;j<all.length;j++)applyEffect(all[j],s);
-  propagate(all,s);
-  s.turnHistory.push({turn:G.turnCount, date:dateStr()});
-  // 随机小事件（增加变数和不可预测性）
-  if(Math.random()<0.3){
-    var randomEvents=[
-      {text:'市井传言：吴三桂在山海关私会清使', eff:{t:'l',k:'wu_sangui',d:-2}},
-      {text:'京郊发现矿脉', eff:{t:'r',k:'treasury',d:8}},
-      {text:'连日阴雨，粮仓渗水', eff:{t:'r',k:'supplies',d:-5}},
-      {text:'一队闯军逃兵向京师投降', eff:{t:'r',k:'military',d:5}},
-      {text:'御史弹劾曹化淳受贿', eff:{t:'l',k:'cao_huachun',d:-3}},
-      {text:'范景文自掏腰包犒赏守军', eff:{t:'r',k:'support',d:2}},
-      {text:'民间自发捐粮', eff:{t:'r',k:'supplies',d:6}},
-      {text:'宫中传出陛下夜不能寐', eff:{t:'r',k:'prestige',d:-2}},
-    ];
-    var re=randomEvents[Math.floor(Math.random()*randomEvents.length)];
-    applyEffect(re.eff,s);
-    showToast(re.text);
-  }
-}
-
 function checkEndings(){
   var s=G.state, r=s.resources, b=s.regions.beijing;
   if(b.military<30&&(s.vars.li_advances||0)>1)return showEnding('meishan');
