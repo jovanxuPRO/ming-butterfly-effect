@@ -156,7 +156,7 @@ body{font-family:'SimSun','STSong','Noto Serif SC','Noto Serif CJK SC',serif;bac
     <div class="event-log" id="event-log"></div>
   </div>
   <div id="map-panel">
-    <svg id="map-svg" viewBox="0 0 900 550" preserveAspectRatio="xMidYMid meet" style="cursor:grab"></svg>
+    <svg id="map-svg" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet" style="cursor:grab"></svg>
     <div class="map-tip" id="map-tip"></div>
   </div>
   <div id="char-panel">
@@ -221,16 +221,21 @@ G.DAYS = ['','初一','初二','初三','初四','初五','初六','初七','初
 // ============ REGIONS ============
 G.initRegions = function(s){
   s.regions = {
-    beijing:      {name:'京师',     x:620,y:90, military:80, supplies:50, control:'明'},
-    shanhaiguan:  {name:'山海关',   x:740,y:70, military:60, supplies:35, control:'明'},
-    liaodong:     {name:'辽东',     x:800,y:45, military:25, supplies:15, control:'明'},
-    datong:       {name:'大同',     x:440,y:110,military:35, supplies:20, control:'明'},
-    xuanfu:       {name:'宣府',     x:550,y:80, military:40, supplies:25, control:'明'},
-    kaifeng:      {name:'开封',     x:510,y:260,military:30, supplies:20, control:'明'},
-    xian:         {name:'西安',     x:310,y:230,military:10, supplies:5,  control:'顺'},
-    wuchang:      {name:'武昌',     x:460,y:370,military:50, supplies:40, control:'明'},
-    nanjing:      {name:'南京',     x:660,y:380,military:60, supplies:55, control:'明'},
-    yangzhou:     {name:'扬州',     x:730,y:340,military:25, supplies:35, control:'明'}
+    beijing:      {name:'京师',     x:750,y:130, military:80, supplies:50, control:'明'},
+    shanhaiguan:  {name:'山海关',   x:880,y:100, military:60, supplies:35, control:'明'},
+    liaodong:     {name:'辽东',     x:950,y:70,  military:25, supplies:15, control:'明'},
+    datong:       {name:'大同',     x:580,y:145, military:35, supplies:20, control:'明'},
+    xuanfu:       {name:'宣府',     x:690,y:120, military:40, supplies:25, control:'明'},
+    kaifeng:      {name:'开封',     x:640,y:340, military:30, supplies:20, control:'明'},
+    xian:         {name:'西安',     x:400,y:290, military:10, supplies:5,  control:'顺'},
+    wuchang:      {name:'武昌',     x:580,y:480, military:50, supplies:40, control:'明'},
+    nanjing:      {name:'南京',     x:820,y:470, military:60, supplies:55, control:'明'},
+    yangzhou:     {name:'扬州',     x:890,y:420, military:25, supplies:35, control:'明'},
+    shenyang:     {name:'盛京',     x:1000,y:45, military:90, supplies:60, control:'清'},
+    mongolia:     {name:'蒙古',     x:350,y:60,  military:50, supplies:30, control:'清'},
+    korea:        {name:'朝鲜',     x:1080,y:120,military:30, supplies:25, control:'清'},
+    tibet:        {name:'西藏',     x:150,y:340, military:10, supplies:10, control:'明'},
+    guangzhou:    {name:'广州',     x:650,y:580, military:20, supplies:30, control:'明'},
   };
 };
 G.RCONS = [['beijing','shanhaiguan'],['beijing','xuanfu'],['beijing','kaifeng'],['shanhaiguan','liaodong'],['xuanfu','datong'],['kaifeng','xian'],['kaifeng','wuchang'],['kaifeng','nanjing'],['wuchang','nanjing'],['nanjing','yangzhou']];
@@ -1323,7 +1328,7 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 
   // Map zoom state - MUST be global for renderMap access
-  window._mapVB={x:0,y:0,w:900,h:550};
+  window._mapVB={x:0,y:0,w:1200,h:700};
   window._mapZoom=1;
 
   // Map zoom/pan
