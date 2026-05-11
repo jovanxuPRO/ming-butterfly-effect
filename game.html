@@ -1196,10 +1196,6 @@ function executeAction(){
   $('action-target').value=''; $('btn-action').style.display='none';
   renderAll();
 }
-  G.decisionLog.push({turn:G.turnCount, date:dateStr(), event:'行动：'+atype, choice:tval});
-  $('action-target').value=''; $('btn-action').style.display='none';
-  renderAll();
-}
 
 function renderPolicies(){
   var s=G.state, list=document.getElementById('policy-list'), h='';
