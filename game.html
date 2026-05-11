@@ -774,11 +774,13 @@ function allocResource(type, amount, regionId){
 
 function floatText(regionId, text, cls){
   var r=G.state.regions[regionId]; if(!r)return;
-  var mp=document.getElementById('map-panel'), mr=mp.getBoundingClientRect();
-  var sv=document.getElementById('map-svg'), sr=sv.getBoundingClientRect();
-  var sx=sr.width/900, sy=sr.height/550;
+  var svg=$('map-svg'); if(!svg)return;
+  var sr=svg.getBoundingClientRect();
+  var vb=svg.viewBox.baseVal;
+  var sx=sr.width/vb.width, sy=sr.height/vb.height;
+  var vx=vb.x, vy=vb.y;
   var el=document.createElement('div'); el.className='float-num '+cls; el.textContent=text;
-  el.style.left=(mr.left+r.x*sx)+'px'; el.style.top=(mr.top+r.y*sy)+'px';
+  el.style.left=(sr.left+(r.x-vx)*sx)+'px'; el.style.top=(sr.top+(r.y-vy)*sy)+'px';
   document.body.appendChild(el); setTimeout(function(){el.remove()},1100);
 }
 
@@ -1087,6 +1089,7 @@ function renderChars(){
     h+='<div style="flex:1;min-width:0"><div class="cname">'+ch.name+'</div><div class="ctitle">'+ch.title+'</div>';
     h+='<div style="display:flex;align-items:center;gap:4px;margin-top:2px"><div style="width:40px;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden"><div style="width:'+ch.loyalty+'%;height:100%;background:'+lc+';border-radius:2px;transition:width 0.5s"></div></div><span style="font-size:9px;color:'+lc+';font-weight:700">'+ch.loyalty+'</span></div>';
     h+='<div class="cdetail" style="margin-top:4px;padding:4px;background:rgba(0,0,0,0.2);border-radius:2px">个性：'+ch.traits+'<br>位置：'+ch.loc+'<br><span style="color:#8B7355;font-style:italic">'+ch.hidden+'</span></div></div>';
+    h+='<div style="font-size:7px;color:#5a4a3a;text-align:center;margin-top:1px">▼ 点击展开</div>';
     h+='</div>';
   }
   list.innerHTML=h;
@@ -1202,19 +1205,22 @@ document.addEventListener('DOMContentLoaded', function(){
   },{passive:false});
 
   svgEl.addEventListener('mousedown',function(e){
-    if(e.button!==0)return;
+    if(e.button!==0||e.target.closest('.map-region'))return;
     mapPanning=true; mapPanX=e.clientX; mapPanY=e.clientY;
-    svgEl.style.cursor='grabbing';
+    svgEl.style.cursor='grabbing'; e.preventDefault();
   });
-  window.addEventListener('mousemove',function(e){
+  var onMove=function(e){
     if(!mapPanning)return;
-    var dx=(e.clientX-mapPanX)*(mapVB.w/svgEl.getBoundingClientRect().width);
-    var dy=(e.clientY-mapPanY)*(mapVB.h/svgEl.getBoundingClientRect().height);
+    var sr=svgEl.getBoundingClientRect();
+    var dx=(e.clientX-mapPanX)*(mapVB.w/sr.width);
+    var dy=(e.clientY-mapPanY)*(mapVB.h/sr.height);
     mapVB.x-=dx; mapVB.y-=dy;
     svgEl.setAttribute('viewBox',mapVB.x+' '+mapVB.y+' '+mapVB.w+' '+mapVB.h);
     mapPanX=e.clientX; mapPanY=e.clientY;
-  });
-  window.addEventListener('mouseup',function(){mapPanning=false;svgEl.style.cursor='grab'});
+  };
+  var onUp=function(){mapPanning=false;svgEl.style.cursor='grab'};
+  window.addEventListener('mousemove',onMove);
+  window.addEventListener('mouseup',onUp);
 
   // 双击重置
   svgEl.addEventListener('dblclick',function(){
