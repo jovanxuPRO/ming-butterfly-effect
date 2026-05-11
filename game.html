@@ -976,7 +976,7 @@ function renderMap(){
     var gl=r.control==='明'?'#E53935':r.control==='顺'?'#FFD600':'#42A5F5';
     var sz=Math.max(15,Math.min(28,10+r.military/7));
     var isCap=cid==='beijing'||cid==='nanjing';
-    h+='<g class="map-region" onclick="onMapClick(\''+cid+'\')" onmouseenter="onMapHover(event,\''+cid+'\')" onmouseleave="onMapLeave()">';
+    h+='<g class="map-region" data-rid="'+cid+'" style="cursor:pointer">';
     // 光晕
     h+='<circle cx="'+r.x+'" cy="'+r.y+'" r="'+(sz+8)+'" fill="'+gl+'" opacity="0.06" filter="url(#g1)"/>';
     if(isCap)h+='<rect x="'+(r.x-sz-6)+'" y="'+(r.y-sz-6)+'" width="'+(sz*2+12)+'" height="'+(sz*2+12)+'" rx="3" fill="none" stroke="'+gl+'" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="4,3"/>';
@@ -1165,57 +1165,64 @@ document.addEventListener('DOMContentLoaded', function(){
   var cn=$('confirm-no'); if(cn)cn.addEventListener('click', function(){ var d=$('confirm-dialog'); if(d)d.classList.remove('visible'); G.confirmCb=null });
 
 
-  // Resource tokens: click-to-select or drag
+  // Resource tokens: mousedown-drag or click-select
   var tokens=document.querySelectorAll('.drag-token');
+  var dragGhost=null, dragStartX=0, dragStartY=0, dragActive=false;
   for(var i=0;i<tokens.length;i++){
-    tokens[i].setAttribute('draggable','true');
-    tokens[i].addEventListener('dragstart',function(e){
-      if(!G.state||G.state.phase!=='admin'){ e.preventDefault(); return }
-      G.dragType=this.getAttribute('data-type');
-      e.dataTransfer.setData('text/plain',G.dragType);
-      this.style.opacity='0.5';
-    });
-    tokens[i].addEventListener('dragend',function(e){
-      this.style.opacity=''; G.dragType=null;
-    });
-    tokens[i].addEventListener('click',function(e){
+    tokens[i].addEventListener('mousedown',function(e){
       if(!G.state||G.state.phase!=='admin')return;
-      e.stopPropagation();
-      var type=this.getAttribute('data-type');
-      if(G.dragType===type){ G.dragType=null; this.style.background='rgba(139,0,0,0.4)'; this.style.borderColor='#DAA520'; this.style.boxShadow=''; }
-      else {
-        if(G.dragType){ var prev=$('token-'+G.dragType); if(prev){prev.style.background='rgba(139,0,0,0.4)';prev.style.borderColor='#DAA520';prev.style.boxShadow=''} }
-        G.dragType=type; this.style.background='rgba(196,30,58,0.8)'; this.style.borderColor='#FFD700'; this.style.boxShadow='0 0 10px rgba(255,215,0,0.5)';
-      }
-    });
-  }
-  // Map as drop target
-  var svgEl2=$('map-svg');
-  if(svgEl2){
-    svgEl2.addEventListener('dragover',function(e){ e.preventDefault() });
-    svgEl2.addEventListener('drop',function(e){
       e.preventDefault();
-      if(!G.dragType||!G.state||G.state.phase!=='admin')return;
-      var type=G.dragType;
-      // Find nearest region by drop position
-      var sr=svgEl2.getBoundingClientRect();
-      var vb=svgEl2.viewBox.baseVal;
-      var mx=vb.x+(e.clientX-sr.left)*(vb.w/sr.width);
-      var my=vb.y+(e.clientY-sr.top)*(vb.h/sr.height);
-      var nearest=null, nearestDist=Infinity;
-      for(var rid in G.state.regions){
-        var r=G.state.regions[rid];
-        var dist=Math.sqrt((r.x-mx)*(r.x-mx)+(r.y-my)*(r.y-my));
-        if(dist<nearestDist){ nearestDist=dist; nearest=rid }
-      }
-      if(nearest&&nearestDist<60){
-        var el=$('token-'+type); var amt=parseInt(el.textContent.match(/\d+/))||0;
-        if(amt>0){ var alloc=Math.floor(amt*ALLOC_PCT/100)||1; allocResource(type,alloc,nearest); amt-=alloc; el.textContent=type==='treasury'?'国库 '+amt:type==='supplies'?'粮草 '+amt:'兵力 '+amt }
-      }
-      G.dragType=null;
-      if($('token-'+type)){ $('token-'+type).style.background='rgba(139,0,0,0.4)'; $('token-'+type).style.borderColor='#DAA520'; $('token-'+type).style.boxShadow='' }
+      G.dragType=this.getAttribute('data-type');
+      dragStartX=e.clientX; dragStartY=e.clientY;
+      this.style.background='rgba(196,30,58,0.8)'; this.style.borderColor='#FFD700'; this.style.boxShadow='0 0 10px rgba(255,215,0,0.5)';
+      dragActive=true;
+      // Create ghost
+      dragGhost=document.createElement('div');
+      dragGhost.textContent=this.textContent;
+      dragGhost.style.cssText='position:fixed;pointer-events:none;z-index:500;padding:4px 12px;background:rgba(196,30,58,0.9);border:1px solid #FFD700;border-radius:3px;color:#FFD700;font-weight:700;font-family:monospace;font-size:12px;left:'+e.clientX+'px;top:'+(e.clientY-20)+'px';
+      document.body.appendChild(dragGhost);
     });
   }
+  document.addEventListener('mousemove',function(e){
+    if(!dragActive||!dragGhost)return;
+    dragGhost.style.left=e.clientX+'px'; dragGhost.style.top=(e.clientY-20)+'px';
+  });
+  document.addEventListener('mouseup',function(e){
+    if(!dragActive){ return }
+    var moved=Math.abs(e.clientX-dragStartX)+Math.abs(e.clientY-dragStartY);
+    dragActive=false;
+    if(dragGhost){ dragGhost.remove(); dragGhost=null }
+    var el=$('token-'+G.dragType);
+    // 没移动=点击选中模式
+    if(moved<5){
+      if(el){ el.style.background='rgba(196,30,58,0.8)'; el.style.borderColor='#FFD700'; el.style.boxShadow='0 0 10px rgba(255,215,0,0.5)' }
+      // 取消之前的选中
+      var tokens=document.querySelectorAll('.drag-token');
+      for(var i=0;i<tokens.length;i++){ if(tokens[i]!==el){ tokens[i].style.background='rgba(139,0,0,0.4)'; tokens[i].style.borderColor='#DAA520'; tokens[i].style.boxShadow='' } }
+      return; // 保持G.dragType以便后续点地图分配
+    }
+    // 拖拽松手=直接分配
+    if(el){el.style.background='rgba(139,0,0,0.4)';el.style.borderColor='#DAA520';el.style.boxShadow=''}
+    var svgEl3=$('map-svg'); if(svgEl3){
+      var sr=svgEl3.getBoundingClientRect();
+      if(e.clientX>=sr.left&&e.clientX<=sr.right&&e.clientY>=sr.top&&e.clientY<=sr.bottom){
+        var vb=svgEl3.viewBox.baseVal;
+        var mx=vb.x+(e.clientX-sr.left)*(vb.w/sr.width);
+        var my=vb.y+(e.clientY-sr.top)*(vb.h/sr.height);
+        var nearest=null, nearestDist=Infinity;
+        for(var rid in G.state.regions){
+          var r=G.state.regions[rid];
+          var dist=Math.sqrt((r.x-mx)*(r.x-mx)+(r.y-my)*(r.y-my));
+          if(dist<nearestDist){ nearestDist=dist; nearest=rid }
+        }
+        if(nearest&&nearestDist<60){
+          var amt=parseInt(el.textContent.match(/\d+/))||0;
+          if(amt>0){ var alloc=Math.floor(amt*ALLOC_PCT/100)||1; allocResource(G.dragType,alloc,nearest); var remain=amt-alloc; el.textContent=G.dragType==='treasury'?'国库 '+remain:G.dragType==='supplies'?'粮草 '+remain:'兵力 '+remain }
+        }
+      }
+    }
+    G.dragType=null;
+  });
 
   // Map zoom state - MUST be global for renderMap access
   window._mapVB={x:0,y:0,w:900,h:550};
@@ -1225,6 +1232,19 @@ document.addEventListener('DOMContentLoaded', function(){
   var svgEl=document.getElementById('map-svg');
   var mapVB=window._mapVB, mapZoom=window._mapZoom, mapMinZoom=0.5, mapMaxZoom=3;
   var mapPanning=false, mapPanX=0, mapPanY=0;
+
+  // 事件委托：SVG元素通过innerHTML生成，内联onclick不会触发
+  svgEl.addEventListener('click',function(e){
+    var g=e.target.closest('[data-rid]');
+    if(g){ onMapClick(g.getAttribute('data-rid')); return }
+  });
+  svgEl.addEventListener('mouseover',function(e){
+    var g=e.target.closest('[data-rid]');
+    if(g)onMapHover(e,g.getAttribute('data-rid'))
+  });
+  svgEl.addEventListener('mouseout',function(e){
+    if(!e.relatedTarget||!e.relatedTarget.closest('[data-rid]'))onMapLeave()
+  });
 
   svgEl.addEventListener('wheel',function(e){
     e.preventDefault();
