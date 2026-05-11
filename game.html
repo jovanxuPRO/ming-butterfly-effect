@@ -238,7 +238,7 @@ G.initRegions = function(s){
     guangzhou:    {name:'广州',     x:650,y:580, military:20, supplies:30, control:'明'},
   };
 };
-G.RCONS = [['beijing','shanhaiguan'],['beijing','xuanfu'],['beijing','kaifeng'],['shanhaiguan','liaodong'],['xuanfu','datong'],['kaifeng','xian'],['kaifeng','wuchang'],['kaifeng','nanjing'],['wuchang','nanjing'],['nanjing','yangzhou']];
+G.RCONS = [['beijing','shanhaiguan'],['beijing','xuanfu'],['beijing','kaifeng'],['shanhaiguan','liaodong'],['xuanfu','datong'],['kaifeng','xian'],['kaifeng','wuchang'],['wuchang','nanjing'],['nanjing','yangzhou'],['nanjing','kaifeng'],['liaodong','shenyang'],['datong','mongolia'],['shenyang','korea']];
 
 // ============ CHARACTERS ============
 G.initChars = function(s){
@@ -935,39 +935,38 @@ function renderMap(){
   h+='<filter id="g2"><feGaussianBlur stdDeviation="5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
   h+='<linearGradient id="rivG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a3a50"/><stop offset="50%" stop-color="#3a7090"/><stop offset="100%" stop-color="#1a3a50"/></linearGradient>';
   h+='</defs>';
-  h+='<rect width="900" height="550" fill="url(#parch)"/>';
-  // 地形纹理 - 山丘
-  var hills=[[165,65],[215,58],[270,68],[310,52],[355,61],[695,35],[745,30],[795,38],[160,175],[205,180],[410,105],[435,108],[130,320],[175,330],[700,290],[740,280]];
-  for(var hi=0;hi<hills.length;hi++)h+='<text x="'+hills[hi][0]+'" y="'+hills[hi][1]+'" font-size="14" fill="#3a2a1a" opacity="0.22">▲</text>';
-  // 森林标记
-  var forests=[[250,170],[280,165],[310,175],[500,140],[530,148],[560,135],[650,200],[670,195],[420,280],[450,290],[600,250],[620,245]];
-  for(var fi=0;fi<forests.length;fi++)h+='<text x="'+forests[fi][0]+'" y="'+forests[fi][1]+'" font-size="9" fill="#1a3a1a" opacity="0.18">♣</text>';
+  h+='<rect width="1200" height="700" fill="url(#parch)"/>';
+  // 地形
+  var hills=[[200,80],[350,70],[500,60],[680,55],[850,45],[1000,50],[1100,60],[200,200],[300,180],[550,150],[250,350],[150,400],[900,350],[1000,360],[700,500]];
+  for(var hi=0;hi<hills.length;hi++)h+='<text x="'+hills[hi][0]+'" y="'+hills[hi][1]+'" font-size="14" fill="#3a2a1a" opacity="0.2">▲</text>';
+  var forests=[[350,220],[400,210],[500,230],[700,180],[750,200],[800,170],[550,360],[600,370],[850,320],[900,300]];
+  for(var fi=0;fi<forests.length;fi++)h+='<text x="'+forests[fi][0]+'" y="'+forests[fi][1]+'" font-size="9" fill="#1a3a1a" opacity="0.16">♣</text>';
   // 长城
-  h+='<polyline points="130,158 360,138 485,110 630,88 765,62 810,54" fill="none" stroke="#6B4226" stroke-width="3" stroke-linejoin="round" opacity="0.55"/>';
-  h+='<polyline points="130,158 360,138 485,110 630,88 765,62 810,54" fill="none" stroke="#C41E3A" stroke-width="1" stroke-dasharray="5,4" opacity="0.35"/>';
-  h+='<rect x="770" y="43" width="28" height="14" rx="2" fill="rgba(0,0,0,0.5)"/><text x="784" y="53" text-anchor="middle" font-size="7" fill="#8B6914" font-weight="700">长城</text>';
+  h+='<polyline points="220,210 500,180 650,150 780,120 920,100 1000,85 1050,75" fill="none" stroke="#6B4226" stroke-width="3" stroke-linejoin="round" opacity="0.5"/>';
+  h+='<polyline points="220,210 500,180 650,150 780,120 920,100 1000,85 1050,75" fill="none" stroke="#C41E3A" stroke-width="1" stroke-dasharray="5,4" opacity="0.3"/>';
+  h+='<rect x="1020" y="65" width="30" height="14" rx="2" fill="rgba(0,0,0,0.5)"/><text x="1035" y="75" text-anchor="middle" font-size="7" fill="#8B6914" font-weight="700">长城</text>';
   // 黄河
-  h+='<path d="M 150,278 Q 330,238 470,282 Q 610,318 710,268 Q 770,244 830,220" fill="none" stroke="url(#rivG)" stroke-width="5" opacity="0.4"/>';
-  h+='<rect x="155" y="264" width="22" height="12" rx="2" fill="rgba(0,0,0,0.5)"/><text x="166" y="273" text-anchor="middle" font-size="6" fill="#8B6914" font-weight="700">黄河</text>';
+  h+='<path d="M 250,350 Q 480,300 650,350 Q 800,400 950,340 Q 1050,310 1100,290" fill="none" stroke="url(#rivG)" stroke-width="5" opacity="0.4"/>';
+  h+='<rect x="260" y="335" width="22" height="12" rx="2" fill="rgba(0,0,0,0.5)"/><text x="271" y="344" text-anchor="middle" font-size="6" fill="#8B6914" font-weight="700">黄河</text>';
   // 长江
-  h+='<path d="M 90,412 Q 280,380 440,382 Q 620,368 760,343 Q 840,327 890,312" fill="none" stroke="url(#rivG)" stroke-width="6" opacity="0.45"/>';
-  h+='<rect x="90" y="398" width="22" height="12" rx="2" fill="rgba(0,0,0,0.5)"/><text x="101" y="407" text-anchor="middle" font-size="6" fill="#4A80B0" font-weight="700">长江</text>';
+  h+='<path d="M 150,520 Q 400,480 600,485 Q 820,470 980,440 Q 1080,420 1150,410" fill="none" stroke="url(#rivG)" stroke-width="6" opacity="0.45"/>';
+  h+='<rect x="160" y="505" width="22" height="12" rx="2" fill="rgba(0,0,0,0.5)"/><text x="171" y="514" text-anchor="middle" font-size="6" fill="#4A80B0" font-weight="700">长江</text>';
   // 势力标签
-  h+='<text x="620" y="25" text-anchor="middle" font-size="13" font-weight="900" fill="#C41E3A" opacity="0.7" letter-spacing="4">大 明</text>';
-  h+='<text x="310" y="195" text-anchor="middle" font-size="11" font-weight="700" fill="#F9A825" opacity="0.6" letter-spacing="2">大顺</text>';
-  h+='<text x="800" y="25" text-anchor="middle" font-size="9" font-weight="700" fill="#42A5F5" opacity="0.5" letter-spacing="2">大清</text>';
+  h+='<text x="750" y="50" text-anchor="middle" font-size="14" font-weight="900" fill="#C41E3A" opacity="0.6" letter-spacing="4">大 明</text>';
+  h+='<text x="400" y="260" text-anchor="middle" font-size="11" font-weight="700" fill="#F9A825" opacity="0.5" letter-spacing="2">大顺</text>';
+  h+='<text x="1050" y="40" text-anchor="middle" font-size="10" font-weight="700" fill="#42A5F5" opacity="0.5" letter-spacing="2">大清</text>';
   // 次要地点
   var minors=[
-    {name:'居庸关',x:590,y:78},{name:'紫荆关',x:520,y:95},{name:'娘子关',x:460,y:140},
-    {name:'潼关',x:360,y:210},{name:'武关',x:400,y:250},{name:'山海关',x:740,y:70},
-    {name:'雁门关',x:410,y:115},{name:'宁远',x:780,y:55},{name:'锦州',x:810,y:40},
-    {name:'济南',x:600,y:200},{name:'洛阳',x:460,y:240},{name:'襄阳',x:430,y:310},
-    {name:'荆州',x:400,y:340},{name:'九江',x:530,y:350},{name:'苏州',x:740,y:360},
-    {name:'杭州',x:700,y:390},{name:'福州',x:680,y:430},{name:'广州',x:520,y:460},
-    {name:'成都',x:250,y:310},{name:'重庆',x:310,y:340},{name:'昆明',x:200,y:410},
-    {name:'兰州',x:220,y:200},{name:'宁夏',x:260,y:160},{name:'太原',x:400,y:170},
-    {name:'武昌',x:460,y:370},{name:'南昌',x:530,y:400},{name:'长沙',x:430,y:430},
-    {name:'贵阳',x:330,y:420},{name:'桂林',x:380,y:470}
+    {name:'居庸关',x:720,y:110},{name:'紫荆关',x:660,y:120},{name:'娘子关',x:600,y:170},
+    {name:'潼关',x:470,y:260},{name:'武关',x:510,y:310},{name:'山海关',x:880,y:100},
+    {name:'雁门关',x:550,y:150},{name:'宁远',x:930,y:80},{name:'锦州',x:970,y:55},
+    {name:'济南',x:760,y:260},{name:'洛阳',x:580,y:300},{name:'襄阳',x:540,y:400},
+    {name:'荆州',x:500,y:440},{name:'九江',x:680,y:440},{name:'苏州',x:900,y:440},
+    {name:'杭州',x:860,y:480},{name:'福州',x:850,y:540},{name:'广州',x:650,y:580},
+    {name:'成都',x:320,y:390},{name:'重庆',x:390,y:420},{name:'昆明',x:250,y:500},
+    {name:'兰州',x:290,y:250},{name:'宁夏',x:350,y:200},{name:'太原',x:530,y:210},
+    {name:'南昌',x:680,y:500},{name:'长沙',x:540,y:530},{name:'贵阳',x:400,y:520},
+    {name:'桂林',x:480,y:580}
   ];
   for(var mi=0;mi<minors.length;mi++){
     var mn=minors[mi];
@@ -976,18 +975,21 @@ function renderMap(){
     h+='<text x="'+mn.x+'" y="'+(mn.y-3)+'" text-anchor="middle" font-size="6" fill="rgba(139,115,85,0.5)">'+mn.name+'</text>';
   }
   var mingPolys=[
-    '620,60 680,50 720,60 740,80 720,100 660,110 620,105 580,100 560,80 570,65',  // 京师圈
-    '700,55 770,45 820,52 830,70 800,80 760,70',  // 山海关-辽东
-    '510,70 560,60 580,75 560,95 520,95 500,80',  // 宣府
-    '400,95 460,90 470,110 440,120 400,120 380,108',  // 大同
-    '600,350 680,340 710,360 700,390 640,400 610,380',  // 南京
-    '620,300 660,290 690,310 680,340 630,345 610,320',  // 南京北
-    '440,350 480,340 500,360 490,390 440,400 420,380',  // 武昌
-    '700,310 750,300 760,330 740,350 710,340',  // 扬州
+    '720,100 800,95 840,110 860,130 820,150 750,145 700,130 710,110',
+    '840,80 920,65 980,75 990,100 940,110 880,95',
+    '650,105 700,95 710,110 690,130 640,130 620,115',
+    '520,130 580,120 600,145 560,160 520,155 500,142',
+    '750,440 840,430 870,460 860,500 780,510 740,490',
+    '550,460 600,440 620,470 600,500 540,510 520,480',
+    '860,380 920,370 940,400 910,430 860,420',
   ];
   var shunPolys=[
-    '280,205 340,195 350,230 320,250 280,240 260,220',  // 西安
-    '470,240 520,235 530,260 500,280 460,270 450,250',  // 开封
+    '360,260 420,250 430,290 390,310 340,300 330,275',
+    '580,310 640,305 650,340 610,360 560,350 550,325',
+  ];
+  var qingPolys=[
+    '960,35 1020,30 1060,40 1070,60 1040,70 980,65',
+    '400,50 480,45 520,55 500,75 440,70 390,60',
   ];
   for(var mp=0;mp<mingPolys.length;mp++){
     h+='<polygon points="'+mingPolys[mp]+'" fill="rgba(180,20,20,0.06)" stroke="rgba(180,20,20,0.12)" stroke-width="1"/>';
@@ -995,11 +997,14 @@ function renderMap(){
   for(var sp=0;sp<shunPolys.length;sp++){
     h+='<polygon points="'+shunPolys[sp]+'" fill="rgba(200,160,20,0.06)" stroke="rgba(200,160,20,0.12)" stroke-width="1"/>';
   }
+  for(var qp=0;qp<qingPolys.length;qp++){
+    h+='<polygon points="'+qingPolys[qp]+'" fill="rgba(30,60,140,0.06)" stroke="rgba(30,60,140,0.12)" stroke-width="1"/>';
+  }
   // 商路
-  var links=[[620,90,740,70],[620,90,550,80],[620,90,510,260],[740,70,800,45],[550,80,440,110],[510,260,310,230],[510,260,460,370],[460,370,660,380],[660,380,730,340],[660,380,510,260],[440,110,310,230]];
+  var links=[[750,130,880,100],[750,130,690,120],[750,130,640,340],[880,100,950,70],[690,120,580,145],[640,340,400,290],[640,340,580,480],[580,480,820,470],[820,470,890,420],[580,145,400,290],[400,290,580,145],[890,420,640,340],[950,70,1000,45],[820,470,640,340]];
   for(var li=0;li<links.length;li++)h+='<line x1="'+links[li][0]+'" y1="'+links[li][1]+'" x2="'+links[li][2]+'" y2="'+links[li][3]+'" stroke="rgba(218,165,32,0.12)" stroke-width="1" stroke-dasharray="3,5"/>';
   // 城市节点
-  var cities=[{id:'beijing',x:620,y:90},{id:'nanjing',x:660,y:380},{id:'xian',x:310,y:230},{id:'shanhaiguan',x:740,y:70},{id:'kaifeng',x:510,y:260},{id:'wuchang',x:460,y:370},{id:'yangzhou',x:730,y:340},{id:'datong',x:440,y:110},{id:'xuanfu',x:550,y:80},{id:'liaodong',x:800,y:45}];
+  var cities=[{id:'beijing',x:750,y:130},{id:'nanjing',x:820,y:470},{id:'xian',x:400,y:290},{id:'shanhaiguan',x:880,y:100},{id:'kaifeng',x:640,y:340},{id:'wuchang',x:580,y:480},{id:'yangzhou',x:890,y:420},{id:'datong',x:580,y:145},{id:'xuanfu',x:690,y:120},{id:'liaodong',x:950,y:70},{id:'shenyang',x:1000,y:45},{id:'mongolia',x:450,y:55},{id:'korea',x:1100,y:130},{id:'tibet',x:200,y:380},{id:'guangzhou',x:650,y:580}];
   for(var ci=0;ci<cities.length;ci++){
     var cid=cities[ci].id, r=s.regions[cid]; if(!r)continue;
     var cl=r.control==='明'?'#B71C1C':r.control==='顺'?'#F9A825':'#1565C0';
@@ -1028,11 +1033,11 @@ function renderMap(){
   if(s.vars.li_advances>0){
     var la=Math.min(1,0.3+s.vars.li_advances*0.12);
     var lw=2+s.vars.li_advances;
-    h+='<line x1="310" y1="230" x2="620" y2="90" stroke="#F9A825" stroke-width="'+lw+'" stroke-dasharray="6,4" opacity="'+la+'"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.2s" repeatCount="indefinite"/></line>';
-    h+='<text x="460" y="150" text-anchor="middle" font-size="8" fill="#F9A825" font-weight="700" opacity="'+la+'">⚔闯军进军</text>';
+    h+='<line x1="400" y1="290" x2="750" y2="130" stroke="#F9A825" stroke-width="'+lw+'" stroke-dasharray="6,4" opacity="'+la+'"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.2s" repeatCount="indefinite"/></line>';
+    h+='<text x="570" y="200" text-anchor="middle" font-size="8" fill="#F9A825" font-weight="700" opacity="'+la+'">⚔闯军进军</text>';
   }
   if((s.vars.qing_threat||0)>40){
-    h+='<text x="800" y="38" text-anchor="middle" font-size="7" fill="#42A5F5" opacity="0.5">⚠清军</text>';
+    h+='<text x="1000" y="60" text-anchor="middle" font-size="7" fill="#42A5F5" opacity="0.5">⚠清军</text>';
   }
   svg.innerHTML=h;
   // 恢复缩放/平移状态
@@ -1386,8 +1391,8 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // 双击重置
   svgEl.addEventListener('dblclick',function(){
-    mapVB.x=0; mapVB.y=0; mapVB.w=900; mapVB.h=550; mapZoom=1;
-    svgEl.setAttribute('viewBox','0 0 900 550');
+    mapVB.x=0; mapVB.y=0; mapVB.w=1200; mapVB.h=700; mapZoom=1;
+    svgEl.setAttribute('viewBox','0 0 1200 700');
   });
   var lb=document.getElementById('btn-load');
   if(lb){
