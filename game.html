@@ -677,20 +677,62 @@ function executeChoice(ev, ch){
 
 function runResolution(){
   var s=G.state, all=[];
+  // 季节影响：2月=冬末，3月=春，4月=春，5月=初夏
+  var seasonMod=1;
+  if(s.month<=2)seasonMod=0.8; // 冬末：粮草消耗加剧
+  else if(s.month>=5)seasonMod=1.15; // 初夏：农耕恢复
   if(s.resources.supplies<50)all.push({t:'r',k:'support',d:-5});
   if(s.resources.treasury<50)all.push({t:'r',k:'prestige',d:-3});
   for(var rid in s.regions){ if(s.regions[rid].control==='顺')all.push({t:'r',k:'support',d:-1}) }
-  if(s.vars.li_advances>0)all.push({t:'r',k:'military',d:-s.vars.li_advances*5});
-  if(s.vars.rebellion_risk>0)all.push({t:'r',k:'supplies',d:-s.vars.rebellion_risk*10});
-  // 李自成动态推进：京师越弱推进越快
+  if(s.vars.li_advances>0)all.push({t:'r',k:'military',d:-Math.floor(s.vars.li_advances*5*seasonMod)});
+  if(s.vars.rebellion_risk>0)all.push({t:'r',k:'supplies',d:-Math.floor(s.vars.rebellion_risk*10*seasonMod)});
+  // 季节粮草消耗
+  if(s.month<=2)all.push({t:'r',k:'supplies',d:-8}); // 冬末额外消耗
+  if(s.month>=5)all.push({t:'r',k:'supplies',d:5}); // 初夏粮草恢复
+  // 李自成动态推进
   var bj=s.regions.beijing;
   if(bj.control==='明'&&G.turnCount>=8){
-    var advanceSpeed=(100-Math.min(100,bj.military))/100; // 0到1，防御越弱越快
+    var advanceSpeed=(100-Math.min(100,bj.military))/100;
     s.vars.li_advances=(s.vars.li_advances||0)+advanceSpeed*0.5;
   }
+  // 人物关系互动
+  if(s.characters.cao_huachun.loyalty<40&&s.characters.chen_yan.loyalty<30)all.push({t:'l',k:'cao_huachun',d:-2});// 曹陈勾连
+  if(s.characters.wu_sangui.loyalty<40&&s.characters.wang_chengen.loyalty>80)all.push({t:'l',k:'wang_chengen',d:-1});// 王担忧吴
   for(var j=0;j<all.length;j++)applyEffect(all[j],s);
   propagate(all,s);
   s.turnHistory.push({turn:G.turnCount, date:dateStr()});
+  if(Math.random()<0.3){
+    var randomEvents=[
+      {text:'市井传言：吴三桂在山海关私会清使', eff:{t:'l',k:'wu_sangui',d:-2}},
+      {text:'京郊发现矿脉', eff:{t:'r',k:'treasury',d:8}},
+      {text:'连日阴雨，粮仓渗水', eff:{t:'r',k:'supplies',d:-5}},
+      {text:'一队闯军逃兵向京师投降', eff:{t:'r',k:'military',d:5}},
+      {text:'御史弹劾曹化淳受贿', eff:{t:'l',k:'cao_huachun',d:-3}},
+      {text:'范景文自掏腰包犒赏守军', eff:{t:'r',k:'support',d:2}},
+    ];
+    var re=randomEvents[Math.floor(Math.random()*randomEvents.length)];
+    applyEffect(re.eff,s); showToast(re.text);
+  }
+}
+  for(var j=0;j<all.length;j++)applyEffect(all[j],s);
+  propagate(all,s);
+  s.turnHistory.push({turn:G.turnCount, date:dateStr()});
+  // 随机小事件（增加变数和不可预测性）
+  if(Math.random()<0.3){
+    var randomEvents=[
+      {text:'市井传言：吴三桂在山海关私会清使', eff:{t:'l',k:'wu_sangui',d:-2}},
+      {text:'京郊发现矿脉', eff:{t:'r',k:'treasury',d:8}},
+      {text:'连日阴雨，粮仓渗水', eff:{t:'r',k:'supplies',d:-5}},
+      {text:'一队闯军逃兵向京师投降', eff:{t:'r',k:'military',d:5}},
+      {text:'御史弹劾曹化淳受贿', eff:{t:'l',k:'cao_huachun',d:-3}},
+      {text:'范景文自掏腰包犒赏守军', eff:{t:'r',k:'support',d:2}},
+      {text:'民间自发捐粮', eff:{t:'r',k:'supplies',d:6}},
+      {text:'宫中传出陛下夜不能寐', eff:{t:'r',k:'prestige',d:-2}},
+    ];
+    var re=randomEvents[Math.floor(Math.random()*randomEvents.length)];
+    applyEffect(re.eff,s);
+    showToast(re.text);
+  }
 }
 
 function checkEndings(){
