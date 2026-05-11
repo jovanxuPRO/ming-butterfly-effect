@@ -193,7 +193,7 @@ var G = window.G = { state: null, turnCount: 0, decisionLog: [], activeEventId: 
 function $(id){ return document.getElementById(id) }
 function safeText(id, text){ var el=$(id); if(el)el.textContent=text }
 function safeHTML(id, html){ var el=$(id); if(el)el.innerHTML=html }
-function safeClass(id, cls, op){ var el=$(id); if(el)el.classList[op](cls) }
+function safeClass(id, op, cls){ var el=$(id); if(el)el.classList[op](cls) }
 function safeStyle(id, prop, val){ var el=$(id); if(el)el.style[prop]=val }
 
 // 安全状态访问
