@@ -1119,7 +1119,7 @@ function renderResources(){
     var asel=$('action-type'); var tsel=$('action-target');
     if(!asel||!tsel)return;
     var atype=asel.value; tsel.style.display=atype?'inline-block':'none';
-    $('btn-action').style.display='none';
+    var ba=$('btn-action'); if(ba)ba.style.display='none';
     if(!atype)return;
     tsel.innerHTML='<option value="">选择目标...</option>';
     if(atype==='military'){
@@ -1133,24 +1133,24 @@ function renderResources(){
     }else if(atype==='economy'){
       tsel.innerHTML='<option value="tax_relief">减税安民 (-10国库 +8民心)</option><option value="forced_loan">强征商税 (+30国库 -10民心)</option><option value="print_money">铸钱充库 (+20国库 -5威望)</option>';
     }
-    $('btn-attack').style.display='none';
+    $('btn-action').style.display='none';
   } else {
     $('token-treasury').textContent='国库';
     $('token-supplies').textContent='粮草';
     $('token-military').textContent='兵力';
     var tokens=document.querySelectorAll('.drag-token');
     for(var i=0;i<tokens.length;i++)tokens[i].classList.add('spent');
-    $('btn-action').style.display='none';
+    var ba=$('btn-action'); if(ba)ba.style.display='none';
   }
 }
 
 function onActionTypeChange(){
-  var at=$('action-type'); $('action-target').style.display=at.value?'inline-block':'none';
-  $('btn-action').style.display='none'; $('action-target').value='';
+  var at=$('action-type'); var ts=$('action-target'); if(ts)ts.style.display=at.value?'inline-block':'none';
+  var ba=$('btn-action'); if(ba)ba.style.display='none'; if(ts)ts.value='';
   if(G.state&&G.state.phase==='admin')renderResources();
 }
 function onActionTargetChange(){
-  $('btn-action').style.display=$('action-target').value?'inline-block':'none';
+  var ba=$('btn-action'); if(ba)ba.style.display=$('action-target').value?'inline-block':'none';
 }
 
 function executeAction(){
