@@ -276,23 +276,9 @@ var BF_RULES = [
   {id:'r2', c:function(s){return(s.vars.qing_threat||0)>60}, e:[{t:'v',k:'beijing_under_siege',d:1},{t:'r',k:'prestige',d:-8}], n:'清军兵锋已抵关前，朝中议论纷纷，天子威严动摇'},
   {id:'r3', c:function(s){return s.resources.treasury<100}, e:[{t:'v',k:'corruption_risk',d:1},{t:'l',k:'chen_yan',d:-8}], n:'国库见底，百官薪俸难以为继，朝堂人心涣散'},
   {id:'r4', c:function(s){return s.resources.support<20}, e:[{t:'v',k:'rebellion_risk',d:1},{t:'r',k:'military',d:-15}], n:'民心已堕谷底，京畿流言四起，军心不稳'},
-  {id:'r5', c:function(s){return s.regions.beijing.military<50&&G.turnCount>12}, e:[{t:'v',k:'li_advances',d:1},{t:'r',k:'prestige',d:-10}], n:'京师守军不足，李自成大军闻风而动，加速推进'},
-  {id:'r6', c:function(s){return s.characters.wu_sangui.loyalty<40}, e:[{t:'v',k:'wu_defect_risk',d:1},{t:'r',k:'military',d:-20}], n:'吴三桂心思动摇，手握重兵之人若生异心，则天下危矣'},
-  {id:'r7', c:function(s){return s.regions.kaifeng.control!=='明'}, e:[{t:'v',k:'central_plains_lost',d:1},{t:'r',k:'support',d:-10},{t:'r',k:'prestige',d:-8}], n:'开封失守，中原门户洞开，王朝腹地暴露于敌前'},
-  {id:'r8', c:function(s){return s.resources.supplies<120}, e:[{t:'r',k:'military',d:-10},{t:'r',k:'support',d:-8},{t:'v',k:'famine',d:1}], n:'粮草告罄，军中节粮，饥馑之象渐显'},
-  {id:'r9', c:function(s){return s.regions.datong.control!=='明'}, e:[{t:'v',k:'north_open',d:1},{t:'r',k:'prestige',d:-12}], n:'大同失陷，北疆门户大开'},
-  {id:'r10',c:function(s){return s.regions.xuanfu.control!=='明'}, e:[{t:'v',k:'beijing_exposed',d:1},{t:'r',k:'prestige',d:-15}], n:'宣府不守，京师以北再无屏障'},
-  {id:'r11',c:function(s){return(s.vars.rebellion_risk||0)>1}, e:[{t:'r',k:'military',d:-20},{t:'r',k:'support',d:-10},{t:'r',k:'supplies',d:-30}], n:'各地叛乱如野火燎原，朝廷处处救火'},
-  {id:'r12',c:function(s){return(s.vars.wu_defect_risk||0)>0&&(s.vars.qing_threat||0)>50}, e:[{t:'l',k:'wu_sangui',d:-10},{t:'v',k:'qing_threat',d:15}], n:'吴三桂与清廷密信往来越发频繁'},
-  {id:'r13',c:function(s){return G.turnCount>10&&(s.vars.li_advances||0)>2}, e:[{t:'r',k:'prestige',d:-8},{t:'r',k:'support',d:-5},{t:'m',k:'beijing',d:-10}], n:'李自成大军压境，京畿百姓开始逃亡'},
-  {id:'r14',c:function(s){return s.resources.treasury<50&&s.resources.supplies<80}, e:[{t:'r',k:'support',d:-10},{t:'v',k:'famine',d:2}], n:'国库与粮仓双双告罄，京城出现抢粮事件'},
-  {id:'r15',c:function(s){return(s.vars.corruption_risk||0)>1}, e:[{t:'r',k:'treasury',d:-20},{t:'l',k:'fan_jingwen',d:-5},{t:'r',k:'support',d:-8}], n:'贪腐蔓延如瘟疫'},
-  {id:'r16',c:function(s){return s.regions.nanjing.military>60&&s.regions.beijing.military<40}, e:[{t:'v',k:'capital_shift',d:1},{t:'r',k:'prestige',d:-5}], n:'南强北弱之势已成'},
-  {id:'r17',c:function(s){return(s.vars.south_prep||0)>2&&s.resources.prestige<30}, e:[{t:'v',k:'south_faction_grows',d:1},{t:'l',k:'chen_yan',d:-10}], n:'南迁派势力暗涨'},
-  {id:'r18',c:function(s){return G.turnCount>12&&s.characters.shi_kefa.loyalty>70}, e:[{t:'r',k:'support',d:5},{t:'r',k:'supplies',d:10}], n:'史可法在江南的治理卓有成效'},
-  {id:'r19',c:function(s){return s.characters.zuo_liangyu.loyalty<20}, e:[{t:'v',k:'zuo_menace',d:1},{t:'r',k:'prestige',d:-8}], n:'左良玉不满溢于言表，军中有人私称其为左王'},
-  {id:'r20',c:function(s){return(s.vars.famine||0)>1&&(s.vars.rebellion_risk||0)>0}, e:[{t:'r',k:'support',d:-15},{t:'v',k:'social_collapse',d:1}], n:'饥荒与叛乱交织，大明根基被掏空'},
-  {id:'r21',c:function(s){return s.regions.beijing.military<25&&G.turnCount>15}, e:[{t:'v',k:'li_advances',d:3},{t:'r',k:'prestige',d:-20}], n:'京师防御形同虚设'},
+  {id:'r5', c:function(s){return s.regions.beijing.military<50&&(s.vars.li_advances||0)>0}, e:[{t:'v',k:'li_advances',d:1},{t:'r',k:'prestige',d:-10}], n:'京师守军不足，李自成大军闻风而动，加速推进'},
+  {id:'r13',c:function(s){return(s.vars.li_advances||0)>2}, e:[{t:'r',k:'prestige',d:-8},{t:'r',k:'support',d:-5},{t:'m',k:'beijing',d:-10}], n:'李自成大军压境，京畿百姓开始逃亡'},
+  {id:'r21',c:function(s){return s.regions.beijing.military<25&&(s.vars.li_advances||0)>2}, e:[{t:'v',k:'li_advances',d:3},{t:'r',k:'prestige',d:-20}], n:'京师防御形同虚设'},
   {id:'r22',c:function(s){return(s.vars.beijing_exposed||0)>0&&s.regions.beijing.military<50}, e:[{t:'r',k:'support',d:-10},{t:'r',k:'prestige',d:-8}], n:'京师暴露于敌前，百姓大规模出逃'},
   {id:'r23',c:function(s){return s.vars.emperor_visited&&s.resources.treasury<150}, e:[{t:'r',k:'military',d:10},{t:'l',k:'wang_chengen',d:5}], n:'天子亲临军营的事迹口口相传'},
   {id:'r24',c:function(s){return(s.vars.negotiation||0)>0&&(s.vars.li_advances||0)>1}, e:[{t:'v',k:'li_negotiation_fails',d:1},{t:'r',k:'prestige',d:-10}], n:'议和失败，李自成要的是整个龙椅'},
@@ -696,6 +682,12 @@ function runResolution(){
   for(var rid in s.regions){ if(s.regions[rid].control==='顺')all.push({t:'r',k:'support',d:-1}) }
   if(s.vars.li_advances>0)all.push({t:'r',k:'military',d:-s.vars.li_advances*5});
   if(s.vars.rebellion_risk>0)all.push({t:'r',k:'supplies',d:-s.vars.rebellion_risk*10});
+  // 李自成动态推进：京师越弱推进越快
+  var bj=s.regions.beijing;
+  if(bj.control==='明'&&G.turnCount>=8){
+    var advanceSpeed=(100-Math.min(100,bj.military))/100; // 0到1，防御越弱越快
+    s.vars.li_advances=(s.vars.li_advances||0)+advanceSpeed*0.5;
+  }
   for(var j=0;j<all.length;j++)applyEffect(all[j],s);
   propagate(all,s);
   s.turnHistory.push({turn:G.turnCount, date:dateStr()});
@@ -1157,35 +1149,53 @@ function executeAction(){
   var s=G.state; if(s.phase!=='admin')return;
   var atype=$('action-type').value, tval=$('action-target').value;
   if(!atype||!tval)return;
+  
   if(atype==='military'){
     var r=s.regions[tval]; if(!r||r.control==='明')return;
     var cost=Math.floor(r.military*0.8);
-    if(s.resources.military<cost){ showToast('兵力不足'); return }
-    if(s.resources.supplies<20){ showToast('粮草不足'); return }
+    if(s.resources.military<cost){ showToast('兵力不足，需≥'+cost); return }
+    if(s.resources.supplies<20){ showToast('粮草不足，需≥20'); return }
     s.resources.military-=cost; s.resources.supplies-=20;
+    // 智能判定：我方兵力比敌方守军
+    var ratio=s.resources.military/Math.max(1,r.military);
+    var winChance=Math.min(0.9, Math.max(0.1, 0.3+ratio*0.3)); // 30%-90%基于实力比
     var roll=Math.random();
-    if(roll<0.4){ r.control='明'; r.military=Math.floor(r.military*0.3); s.resources.prestige+=8; s.resources.support+=5; showToast('⚔ 大胜！'+r.name+'收复！'); floatText(tval,'收复','pos') }
-    else if(roll<0.8){ r.military=Math.floor(r.military*0.6); s.resources.prestige+=3; showToast('⚔ 击退敌军') }
-    else { s.resources.military-=Math.floor(cost*0.3); s.resources.prestige-=5; s.resources.support-=3; showToast('💀 出击受挫') }
+    if(roll<winChance){
+      r.control='明'; r.military=Math.floor(r.military*(1-winChance));
+      var prestigeGain=Math.floor(5+winChance*10);
+      s.resources.prestige+=prestigeGain; s.resources.support+=Math.floor(winChance*8);
+      showToast('⚔ 大胜！'+r.name+'收复！(胜率'+Math.floor(winChance*100)+'%)');
+      floatText(tval,'收复','pos');
+    }else{
+      r.military=Math.floor(r.military*(1-winChance*0.4));
+      var loss=Math.floor(cost*(1-winChance));
+      s.resources.military-=loss; s.resources.prestige-=Math.floor(8*(1-winChance)); s.resources.support-=3;
+      showToast('💀 出击受挫，损失'+loss+'兵 (胜率仅'+Math.floor(winChance*100)+'%)');
+    }
   }else if(atype==='diplomacy'){
     if(s.resources.treasury<30){ showToast('国库不足'); return }
     s.resources.treasury-=30;
     var ch=s.characters[tval]; if(!ch&&tval==='zuo_liangyu')ch=s.characters.zuo_liangyu;
     if(!ch)return;
-    var dipRoll=Math.random();
-    if(dipRoll<0.5){ ch.loyalty+=8; s.resources.prestige+=3; showToast('🤝 '+ch.name+'态度缓和') }
-    else if(dipRoll<0.9){ ch.loyalty+=3; showToast('🤝 '+ch.name+'略有松动') }
-    else { ch.loyalty-=3; s.resources.prestige-=2; showToast('💢 '+ch.name+'不为所动') }
+    // 忠诚度越低越容易拉拢
+    var dipChance=Math.min(0.85, Math.max(0.15, 0.5+(50-ch.loyalty)/120));
+    var roll=Math.random();
+    if(roll<dipChance){ ch.loyalty=Math.min(100,ch.loyalty+Math.floor(5+dipChance*10)); s.resources.prestige+=Math.floor(dipChance*6); showToast('🤝 '+ch.name+'态度缓和 (成功率'+Math.floor(dipChance*100)+'%)') }
+    else { ch.loyalty=Math.max(0,ch.loyalty-2); s.resources.prestige-=2; showToast('💢 '+ch.name+'不为所动') }
   }else if(atype==='espionage'){
     if(s.resources.treasury<20){ showToast('国库不足'); return }
     s.resources.treasury-=20;
     if(tval==='enemy'){ s.vars.intel_gathered=(s.vars.intel_gathered||0)+1; showToast('🕵 获得敌军情报'); s.resources.prestige+=2 }
-    else { var ch2=s.characters[tval]; if(ch2){ var spRoll=Math.random(); if(spRoll<0.6){ ch2.loyalty-=5; showToast('🕵 '+ch2.name+'的把柄已掌握'); s.resources.prestige+=3 } else { showToast('🕵 未查到确凿证据'); s.resources.prestige-=1 } } }
+    else { var ch2=s.characters[tval]; if(ch2){ var spChance=Math.min(0.8, 0.3+(50-ch2.loyalty)/100); if(Math.random()<spChance){ ch2.loyalty=Math.max(0,ch2.loyalty-8); showToast('🕵 '+ch2.name+'的叛迹已掌握'); s.resources.prestige+=4 } else { showToast('🕵 查无实据'); s.resources.prestige-=1 } } }
   }else if(atype==='economy'){
     if(tval==='tax_relief'){ if(s.resources.treasury<10){ showToast('国库不足'); return }; s.resources.treasury-=10; s.resources.support+=8; showToast('💰 减税令下，百姓称颂') }
-    else if(tval==='forced_loan'){ var loan=Math.min(30,Math.floor(s.resources.treasury*0.2)); s.resources.treasury+=loan; s.resources.support-=10; showToast('💰 强征商税得'+loan+'银，民怨沸腾') }
-    else if(tval==='print_money'){ s.resources.treasury+=20; s.resources.prestige-=5; showToast('💰 铸钱充库，钱贱物贵') }
+    else if(tval==='forced_loan'){ var loan=Math.min(30,Math.floor(s.resources.treasury*0.2)); s.resources.treasury+=loan; s.resources.support-=10; showToast('💰 强征得'+loan+'银') }
+    else if(tval==='print_money'){ s.resources.treasury+=20; s.resources.prestige-=5; showToast('💰 铸钱充库') }
   }
+  G.decisionLog.push({turn:G.turnCount, date:dateStr(), event:'行动：'+atype, choice:tval});
+  $('action-target').value=''; $('btn-action').style.display='none';
+  renderAll();
+}
   G.decisionLog.push({turn:G.turnCount, date:dateStr(), event:'行动：'+atype, choice:tval});
   $('action-target').value=''; $('btn-action').style.display='none';
   renderAll();
