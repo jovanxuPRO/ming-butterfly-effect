@@ -73,7 +73,7 @@ body{font-family:'SimSun','STSong','Noto Serif SC','Noto Serif CJK SC',serif;bac
 .char-card .ctitle{color:#8B7355;font-size:8px}
 .char-card .cdetail{max-height:0;overflow:hidden;transition:max-height 0.3s;font-size:9px;color:#c0a080;line-height:1.4}
 .char-card.selected .cdetail{max-height:80px}
-#resource-bar{grid-column:1/-1;display:flex;gap:6px;align-items:center;padding:4px 8px;background:rgba(20,12,6,0.95);border:1px solid rgba(218,165,32,0.3);border-radius:3px;font-size:10px;flex-wrap:wrap;min-height:28px;overflow-x:auto}
+#resource-bar{grid-column:1/-1;display:flex;gap:6px;align-items:center;padding:4px 8px;background:rgba(20,12,6,0.95);border:1px solid rgba(218,165,32,0.3);border-radius:3px;font-size:10px;flex-wrap:wrap;min-height:28px;overflow-x:auto;overflow-y:visible}
 #resource-bar .rlabel{color:#8B7355}
 #resource-bar .drag-token{padding:3px 10px;background:rgba(139,0,0,0.4);border:1px solid #DAA520;border-radius:3px;color:#DAA520;cursor:grab;font-weight:700;font-family:monospace;transition:all 0.2s;letter-spacing:1px}
 #resource-bar .drag-token:hover{background:rgba(196,30,58,0.6)}
@@ -172,12 +172,19 @@ body{font-family:'SimSun','STSong','Noto Serif SC','Noto Serif CJK SC',serif;bac
     <input id="alloc-pct-input" type="number" value="50" min="5" max="100" step="5" onchange="setAllocPct(parseInt(this.value)||50)" style="width:42px;padding:1px 3px;font-size:10px;font-family:inherit;background:rgba(30,18,8,0.7);border:1px solid rgba(218,165,32,0.3);color:#DAA520;border-radius:2px;text-align:center">
     <span style="color:#DAA520;font-size:9px">%</span>
     <button onclick="advancePhase()" id="btn-advance" style="padding:3px 14px;font-family:inherit;font-size:11px;background:rgba(139,0,0,0.5);border:1px solid #DAA520;color:#DAA520;cursor:pointer;border-radius:3px;margin-left:8px">进入施政 →</button>
-    <span style="color:#8B7355;margin:0 8px">|</span>
-    <span style="color:#8B7355;font-size:10px">军事行动：</span>
-    <select id="military-target" onchange="onMilTargetChange()" style="padding:2px 4px;font-size:10px;font-family:inherit;background:rgba(30,18,8,0.7);border:1px solid rgba(218,165,32,0.3);color:#DAA520;border-radius:2px">
-      <option value="">选择目标...</option>
+    <span style="color:#8B7355;margin:0 6px">|</span>
+    <span style="color:#8B7355;font-size:10px">行动：</span>
+    <select id="action-type" onchange="onActionTypeChange()" style="padding:2px 4px;font-size:10px;font-family:inherit;background:rgba(30,18,8,0.7);border:1px solid rgba(218,165,32,0.3);color:#DAA520;border-radius:2px">
+      <option value="">类型...</option>
+      <option value="military">⚔ 军事出击</option>
+      <option value="diplomacy">🤝 遣使外交</option>
+      <option value="espionage">🕵 谍报行动</option>
+      <option value="economy">💰 经济调控</option>
     </select>
-    <button onclick="launchAttack()" id="btn-attack" style="padding:3px 10px;font-family:inherit;font-size:10px;background:rgba(196,30,58,0.5);border:1px solid #f44336;color:#f44336;cursor:pointer;border-radius:3px;display:none" title="消耗兵力主动出击">⚔ 出击</button>
+    <select id="action-target" onchange="onActionTargetChange()" style="padding:2px 4px;font-size:10px;font-family:inherit;background:rgba(30,18,8,0.7);border:1px solid rgba(218,165,32,0.3);color:#DAA520;border-radius:2px;display:none">
+      <option value="">目标...</option>
+    </select>
+    <button onclick="executeAction()" id="btn-action" style="padding:3px 10px;font-family:inherit;font-size:10px;background:rgba(196,30,58,0.5);border:1px solid #f44336;color:#f44336;cursor:pointer;border-radius:3px;display:none">执行</button>
   </div>
   <div id="policy-bar">
     <span class="plabel">国策：</span>
@@ -1108,58 +1115,79 @@ function renderResources(){
     for(var i=0;i<tokens.length;i++)tokens[i].classList.remove('spent');
     G.dragType=null;
     for(var i=0;i<tokens.length;i++){ tokens[i].style.background='rgba(139,0,0,0.4)'; tokens[i].style.borderColor='#DAA520'; tokens[i].style.boxShadow='' }
-    // 动态更新军事目标下拉
-    var sel=$('military-target'); if(!sel)return;
-    var curVal=sel.value;
-    sel.innerHTML='<option value="">选择出击目标...</option>';
-    for(var rid in s.regions){
-      var reg=s.regions[rid];
-      if(reg.control==='明'||reg.military<5)continue;
-      var cost=Math.floor(reg.military*0.8);
-      sel.innerHTML+='<option value="'+rid+'">'+reg.name+' ['+reg.control+'] ⚔'+reg.military+' (需兵≈'+cost+')</option>';
+    // 动态更新行动目标下拉
+    var asel=$('action-type'); var tsel=$('action-target');
+    if(!asel||!tsel)return;
+    var atype=asel.value; tsel.style.display=atype?'inline-block':'none';
+    $('btn-action').style.display='none';
+    if(!atype)return;
+    tsel.innerHTML='<option value="">选择目标...</option>';
+    if(atype==='military'){
+      for(var rid in s.regions){ var reg=s.regions[rid]; if(reg.control==='明'||reg.military<5)continue; tsel.innerHTML+='<option value="'+rid+'">'+reg.name+' ['+reg.control+'] ⚔'+reg.military+'</option>' }
+    }else if(atype==='diplomacy'){
+      for(var cid in s.characters){ var ch=s.characters[cid]; if(cid==='li_zicheng'||cid==='duoergun')tsel.innerHTML+='<option value="'+cid+'">'+ch.name+' ('+ch.title+')</option>' }
+      tsel.innerHTML+='<option value="zuo_liangyu">左良玉 (宁南伯)</option>';
+    }else if(atype==='espionage'){
+      for(var cid2 in s.characters){ var ch2=s.characters[cid2]; if(ch2.loyalty<70&&ch2.loyalty>0)tsel.innerHTML+='<option value="'+cid2+'">调查 '+ch2.name+' (忠'+ch2.loyalty+')</option>' }
+      tsel.innerHTML+='<option value="enemy">刺探敌营情报</option>';
+    }else if(atype==='economy'){
+      tsel.innerHTML='<option value="tax_relief">减税安民 (-10国库 +8民心)</option><option value="forced_loan">强征商税 (+30国库 -10民心)</option><option value="print_money">铸钱充库 (+20国库 -5威望)</option>';
     }
-    if(curVal)sel.value=curVal;
-    $('btn-attack').style.display=sel.value?'inline-block':'none';
+    $('btn-attack').style.display='none';
   } else {
     $('token-treasury').textContent='国库';
     $('token-supplies').textContent='粮草';
     $('token-military').textContent='兵力';
     var tokens=document.querySelectorAll('.drag-token');
     for(var i=0;i<tokens.length;i++)tokens[i].classList.add('spent');
-    $('btn-attack').style.display='none';
+    $('btn-action').style.display='none';
   }
 }
 
-function onMilTargetChange(){
-  $('btn-attack').style.display=$('military-target').value?'inline-block':'none';
+function onActionTypeChange(){
+  var at=$('action-type'); $('action-target').style.display=at.value?'inline-block':'none';
+  $('btn-action').style.display='none'; $('action-target').value='';
+  if(G.state&&G.state.phase==='admin')renderResources();
+}
+function onActionTargetChange(){
+  $('btn-action').style.display=$('action-target').value?'inline-block':'none';
 }
 
-function launchAttack(){
+function executeAction(){
   var s=G.state; if(s.phase!=='admin')return;
-  var rid=$('military-target').value; if(!rid)return;
-  var r=s.regions[rid]; if(!r||r.control==='明')return;
-  var cost=Math.floor(r.military*0.8);
-  if(s.resources.military<cost){ showToast('兵力不足，需要至少'+cost+'兵力'); return }
-  if(s.resources.supplies<20){ showToast('粮草不足，需要至少20粮草'); return }
-  s.resources.military-=cost;
-  s.resources.supplies-=20;
-  var roll=Math.random();
-  if(roll<0.4){ // 40% 大胜
-    r.control='明'; r.military=Math.floor(r.military*0.3);
-    s.resources.prestige+=8; s.resources.support+=5;
-    showToast('⚔ 大胜！'+r.name+'收复！');
-    floatText(rid,'收复','pos');
-  }else if(roll<0.8){ // 40% 惨胜
-    r.military=Math.floor(r.military*0.6);
-    s.resources.prestige+=3;
-    showToast('⚔ 击退敌军，'+r.name+'守军削弱');
-  }else{ // 20% 失败
-    s.resources.military-=Math.floor(cost*0.3);
-    s.resources.prestige-=5; s.resources.support-=3;
-    showToast('💀 出击受挫，损失惨重');
+  var atype=$('action-type').value, tval=$('action-target').value;
+  if(!atype||!tval)return;
+  if(atype==='military'){
+    var r=s.regions[tval]; if(!r||r.control==='明')return;
+    var cost=Math.floor(r.military*0.8);
+    if(s.resources.military<cost){ showToast('兵力不足'); return }
+    if(s.resources.supplies<20){ showToast('粮草不足'); return }
+    s.resources.military-=cost; s.resources.supplies-=20;
+    var roll=Math.random();
+    if(roll<0.4){ r.control='明'; r.military=Math.floor(r.military*0.3); s.resources.prestige+=8; s.resources.support+=5; showToast('⚔ 大胜！'+r.name+'收复！'); floatText(tval,'收复','pos') }
+    else if(roll<0.8){ r.military=Math.floor(r.military*0.6); s.resources.prestige+=3; showToast('⚔ 击退敌军') }
+    else { s.resources.military-=Math.floor(cost*0.3); s.resources.prestige-=5; s.resources.support-=3; showToast('💀 出击受挫') }
+  }else if(atype==='diplomacy'){
+    if(s.resources.treasury<30){ showToast('国库不足'); return }
+    s.resources.treasury-=30;
+    var ch=s.characters[tval]; if(!ch&&tval==='zuo_liangyu')ch=s.characters.zuo_liangyu;
+    if(!ch)return;
+    var dipRoll=Math.random();
+    if(dipRoll<0.5){ ch.loyalty+=8; s.resources.prestige+=3; showToast('🤝 '+ch.name+'态度缓和') }
+    else if(dipRoll<0.9){ ch.loyalty+=3; showToast('🤝 '+ch.name+'略有松动') }
+    else { ch.loyalty-=3; s.resources.prestige-=2; showToast('💢 '+ch.name+'不为所动') }
+  }else if(atype==='espionage'){
+    if(s.resources.treasury<20){ showToast('国库不足'); return }
+    s.resources.treasury-=20;
+    if(tval==='enemy'){ s.vars.intel_gathered=(s.vars.intel_gathered||0)+1; showToast('🕵 获得敌军情报'); s.resources.prestige+=2 }
+    else { var ch2=s.characters[tval]; if(ch2){ var spRoll=Math.random(); if(spRoll<0.6){ ch2.loyalty-=5; showToast('🕵 '+ch2.name+'的把柄已掌握'); s.resources.prestige+=3 } else { showToast('🕵 未查到确凿证据'); s.resources.prestige-=1 } } }
+  }else if(atype==='economy'){
+    if(tval==='tax_relief'){ if(s.resources.treasury<10){ showToast('国库不足'); return }; s.resources.treasury-=10; s.resources.support+=8; showToast('💰 减税令下，百姓称颂') }
+    else if(tval==='forced_loan'){ var loan=Math.min(30,Math.floor(s.resources.treasury*0.2)); s.resources.treasury+=loan; s.resources.support-=10; showToast('💰 强征商税得'+loan+'银，民怨沸腾') }
+    else if(tval==='print_money'){ s.resources.treasury+=20; s.resources.prestige-=5; showToast('💰 铸钱充库，钱贱物贵') }
   }
-  G.decisionLog.push({turn:G.turnCount, date:dateStr(), event:'⚔ 主动出击', choice:r.name});
-  $('military-target').value=''; $('btn-attack').style.display='none';
+  G.decisionLog.push({turn:G.turnCount, date:dateStr(), event:'行动：'+atype, choice:tval});
+  $('action-target').value=''; $('btn-action').style.display='none';
   renderAll();
 }
 
