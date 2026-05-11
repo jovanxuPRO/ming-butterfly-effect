@@ -172,6 +172,12 @@ body{font-family:'SimSun','STSong','Noto Serif SC','Noto Serif CJK SC',serif;bac
     <input id="alloc-pct-input" type="number" value="50" min="5" max="100" step="5" onchange="setAllocPct(parseInt(this.value)||50)" style="width:42px;padding:1px 3px;font-size:10px;font-family:inherit;background:rgba(30,18,8,0.7);border:1px solid rgba(218,165,32,0.3);color:#DAA520;border-radius:2px;text-align:center">
     <span style="color:#DAA520;font-size:9px">%</span>
     <button onclick="advancePhase()" id="btn-advance" style="padding:3px 14px;font-family:inherit;font-size:11px;background:rgba(139,0,0,0.5);border:1px solid #DAA520;color:#DAA520;cursor:pointer;border-radius:3px;margin-left:8px">进入施政 →</button>
+    <span style="color:#8B7355;margin:0 8px">|</span>
+    <span style="color:#8B7355;font-size:10px">军事行动：</span>
+    <select id="military-target" onchange="onMilTargetChange()" style="padding:2px 4px;font-size:10px;font-family:inherit;background:rgba(30,18,8,0.7);border:1px solid rgba(218,165,32,0.3);color:#DAA520;border-radius:2px">
+      <option value="">选择目标...</option>
+    </select>
+    <button onclick="launchAttack()" id="btn-attack" style="padding:3px 10px;font-family:inherit;font-size:10px;background:rgba(196,30,58,0.5);border:1px solid #f44336;color:#f44336;cursor:pointer;border-radius:3px;display:none" title="消耗兵力主动出击">⚔ 出击</button>
   </div>
   <div id="policy-bar">
     <span class="plabel">国策：</span>
@@ -1102,13 +1108,59 @@ function renderResources(){
     for(var i=0;i<tokens.length;i++)tokens[i].classList.remove('spent');
     G.dragType=null;
     for(var i=0;i<tokens.length;i++){ tokens[i].style.background='rgba(139,0,0,0.4)'; tokens[i].style.borderColor='#DAA520'; tokens[i].style.boxShadow='' }
+    // 动态更新军事目标下拉
+    var sel=$('military-target'); if(!sel)return;
+    var curVal=sel.value;
+    sel.innerHTML='<option value="">选择出击目标...</option>';
+    for(var rid in s.regions){
+      var reg=s.regions[rid];
+      if(reg.control==='明'||reg.military<5)continue;
+      var cost=Math.floor(reg.military*0.8);
+      sel.innerHTML+='<option value="'+rid+'">'+reg.name+' ['+reg.control+'] ⚔'+reg.military+' (需兵≈'+cost+')</option>';
+    }
+    if(curVal)sel.value=curVal;
+    $('btn-attack').style.display=sel.value?'inline-block':'none';
   } else {
     $('token-treasury').textContent='国库';
     $('token-supplies').textContent='粮草';
     $('token-military').textContent='兵力';
     var tokens=document.querySelectorAll('.drag-token');
     for(var i=0;i<tokens.length;i++)tokens[i].classList.add('spent');
+    $('btn-attack').style.display='none';
   }
+}
+
+function onMilTargetChange(){
+  $('btn-attack').style.display=$('military-target').value?'inline-block':'none';
+}
+
+function launchAttack(){
+  var s=G.state; if(s.phase!=='admin')return;
+  var rid=$('military-target').value; if(!rid)return;
+  var r=s.regions[rid]; if(!r||r.control==='明')return;
+  var cost=Math.floor(r.military*0.8);
+  if(s.resources.military<cost){ showToast('兵力不足，需要至少'+cost+'兵力'); return }
+  if(s.resources.supplies<20){ showToast('粮草不足，需要至少20粮草'); return }
+  s.resources.military-=cost;
+  s.resources.supplies-=20;
+  var roll=Math.random();
+  if(roll<0.4){ // 40% 大胜
+    r.control='明'; r.military=Math.floor(r.military*0.3);
+    s.resources.prestige+=8; s.resources.support+=5;
+    showToast('⚔ 大胜！'+r.name+'收复！');
+    floatText(rid,'收复','pos');
+  }else if(roll<0.8){ // 40% 惨胜
+    r.military=Math.floor(r.military*0.6);
+    s.resources.prestige+=3;
+    showToast('⚔ 击退敌军，'+r.name+'守军削弱');
+  }else{ // 20% 失败
+    s.resources.military-=Math.floor(cost*0.3);
+    s.resources.prestige-=5; s.resources.support-=3;
+    showToast('💀 出击受挫，损失惨重');
+  }
+  G.decisionLog.push({turn:G.turnCount, date:dateStr(), event:'⚔ 主动出击', choice:r.name});
+  $('military-target').value=''; $('btn-attack').style.display='none';
+  renderAll();
 }
 
 function renderPolicies(){
