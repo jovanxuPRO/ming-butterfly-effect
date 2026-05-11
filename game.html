@@ -1013,16 +1013,14 @@ function onMapClick(rid){
   var s=G.state; if(s.phase!=='admin')return;
   if(G.dragType){
     var el=document.getElementById('token-'+G.dragType);
-    var amt=parseInt(el.textContent)||0;
-    if(amt>0){
+    if(!el)return;
+    var m=el.textContent.match(/\d+/);
+    var amt=m?parseInt(m[0]):0;
+      if(amt>0){
       var allocAmt=Math.floor(amt*ALLOC_PCT/100)||1;
       allocResource(G.dragType,allocAmt,rid);
       amt-=allocAmt; el.textContent=Math.max(0,amt);
-      if(amt<=0){
-        // Deselect after allocation
-        el.style.background='rgba(139,0,0,0.4)'; el.style.borderColor='#DAA520'; el.style.boxShadow='';
-        G.dragType=null;
-      }
+      if(amt<=0){ el.style.background='rgba(139,0,0,0.4)'; el.style.borderColor='#DAA520'; el.style.boxShadow=''; G.dragType=null }
     }
   } else {
     var r=s.regions[rid], tip=document.getElementById('map-tip');
